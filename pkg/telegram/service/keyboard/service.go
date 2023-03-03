@@ -12,7 +12,7 @@ const (
 type DefaultService struct {
 }
 
-func (s *DefaultService) BuildInlineKeyboard(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup {
+func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup {
 	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, maxCountButtonsWithoutChunks)
 	chunkSize := maxCountButtonsWithoutChunks
 	for {
@@ -36,7 +36,15 @@ func (s *DefaultService) BuildInlineKeyboard(in BuildInlineKeyboardIn) *tgbotapi
 	}
 }
 
-func (s *DefaultService) BuildKeyboard(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
+func (s *DefaultService) BuildInlineKeyboardList(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup {
+	return &tgbotapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{
+			buildInlineRow(in.Command, in.Buttons),
+		},
+	}
+}
+
+func (s *DefaultService) BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
 	keyboard := make([][]tgbotapi.KeyboardButton, 0, maxCountButtonsWithoutChunks)
 	chunkSize := maxCountButtonsWithoutChunks
 	for {

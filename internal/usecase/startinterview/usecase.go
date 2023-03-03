@@ -2,6 +2,7 @@ package startinterview
 
 import (
 	"context"
+	"errors"
 	"job-interviewer/internal/contracts"
 	"job-interviewer/internal/service/interview"
 	"job-interviewer/internal/service/question"
@@ -17,6 +18,15 @@ func NewUseCase(i interview.Service, q question.Service) *UseCase {
 }
 
 func (u *UseCase) StartInterview(ctx context.Context, in contracts.StartInterviewIn) error {
+	activeInterview, err := u.interviewService.FindActiveInterview(ctx, in.UserID)
+	if err != nil && !errors.Is(err, contracts.ErrEmptyActiveInterview) {
+		return err
+	}
+	err = u.interviewService.FinishInterview(ctx, activeInterview)
+	if err != nil {
+		return err
+	}
+
 	newInterview, err := u.interviewService.StartInterview(
 		ctx,
 		interview.StartInterviewIn{

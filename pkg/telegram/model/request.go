@@ -32,10 +32,10 @@ type (
 	}
 )
 
-func NewRequest(in *tgbotapi.Update) *Request {
+func NewRequest(in tgbotapi.Update) Request {
 	chat := in.FromChat()
 	user := in.SentFrom()
-	request := &Request{
+	request := Request{
 		UpdateID: int64(in.UpdateID),
 		Chat: &Chat{
 			ID: chat.ID,

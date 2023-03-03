@@ -3,8 +3,8 @@ package keyboard
 import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 const (
-	ButtonUrl ButtonType = iota
-	ButtonData
+	ButtonData ButtonType = iota
+	ButtonUrl
 )
 
 type (
@@ -31,7 +31,8 @@ type (
 	}
 
 	Service interface {
-		BuildKeyboard(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup
-		BuildInlineKeyboard(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup
+		BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup
+		BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup
+		BuildInlineKeyboardList(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup
 	}
 )

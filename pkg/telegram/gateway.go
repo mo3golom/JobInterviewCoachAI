@@ -48,17 +48,22 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 	updates := g.client.GetUpdatesChan(config)
 	for update := range updates {
 		go func(in tgbotapi.Update) {
-			err := g.handleUpdate(ctx, &in, senderImpl)
+			request := model.NewRequest(in)
+			err := g.handleUpdate(ctx, &request, senderImpl)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+
+				_, _ = senderImpl.Send(
+					model.
+						NewResponse(request.Chat.ID).
+						SetText("Что-то пошло не так :("),
+				)
 			}
 		}(update)
 	}
 }
 
-func (g *DefaultGateway) handleUpdate(ctx context.Context, in *tgbotapi.Update, sender Sender) error {
-	request := model.NewRequest(in)
-
+func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Request, sender Sender) error {
 	// MIDDLEWARE
 	for _, middleware := range g.middlewares {
 		err := middleware.Handle(ctx, request)
@@ -84,7 +89,12 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, in *tgbotapi.Update, 
 	}
 
 	if len(g.messageHandlers) == 0 {
-		return g.unknownCommand(in)
+		_, err := sender.Send(
+			model.
+				NewResponse(request.Chat.ID).
+				SetText("Неизвестная команда"),
+		)
+		return err
 	}
 
 	return nil
@@ -93,18 +103,4 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, in *tgbotapi.Update, 
 func (g *DefaultGateway) determineCommand(request *model.Request) (Handler, bool) {
 	command, ok := g.commandHandlers[request.Command]
 	return command, ok
-}
-
-func (g *DefaultGateway) unknownCommand(in *tgbotapi.Update) error {
-	var chatID int64 = 0
-	if in.CallbackQuery != nil && in.CallbackQuery.Message != nil && in.CallbackQuery.Message.Chat != nil {
-		chatID = in.CallbackQuery.Message.Chat.ID
-	}
-	if in.Message != nil && in.Message.Chat != nil {
-		chatID = in.Message.Chat.ID
-	}
-
-	message := tgbotapi.NewMessage(chatID, "Неизвестная команда")
-	_, err := g.client.Send(message)
-	return err
 }

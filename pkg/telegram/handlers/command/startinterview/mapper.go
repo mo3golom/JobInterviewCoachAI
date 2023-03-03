@@ -9,3 +9,8 @@ var (
 		model.JobLevelSenior: "Senior",
 	}
 )
+
+type (
+	data struct {
+	}
+)

@@ -9,9 +9,12 @@ import (
 	"job-interviewer/internal"
 	"job-interviewer/internal/gpt"
 	"job-interviewer/pkg/telegram"
+	"job-interviewer/pkg/telegram/handlers/command/finishinterview"
+	"job-interviewer/pkg/telegram/handlers/command/getnextquestion"
+	"job-interviewer/pkg/telegram/handlers/command/prestartinterview"
 	"job-interviewer/pkg/telegram/handlers/command/start"
 	"job-interviewer/pkg/telegram/handlers/command/startinterview"
-	"job-interviewer/pkg/telegram/handlers/message/processinterview"
+	"job-interviewer/pkg/telegram/handlers/message/acceptanswer"
 	"job-interviewer/pkg/transactional"
 	"os"
 )
@@ -38,26 +41,43 @@ func main() {
 		gptGateway,
 	)
 
-	processInterviewHandler := processinterview.NewHandler(
+	// HANDLERS
+	finishInterviewHandler := finishinterview.NewHandler(interviewConfig.UseCases.FinishInterview)
+	acceptAnswerHandler := acceptanswer.NewHandler(
 		interviewConfig.UseCases.GetNextQuestion,
-		interviewConfig.UseCases.FinishInterview,
 		interviewConfig.UseCases.AcceptAnswer,
+		finishInterviewHandler,
+		tgConfig.KeyboardService,
+	)
+	getNextQuestionHandler := getnextquestion.NewHandler(
+		interviewConfig.UseCases.GetNextQuestion,
+		finishInterviewHandler,
+	)
+	startInterviewHandler := startinterview.NewHandler(
+		tgConfig.KeyboardService,
+		interviewConfig.UseCases.GetInterviewOptions,
+		interviewConfig.UseCases.StartInterview,
+		getNextQuestionHandler,
+	)
+	preStartInterviewHandler := prestartinterview.NewHandler(
+		tgConfig.KeyboardService,
+		interviewConfig.UseCases.GetInterview,
+		startInterviewHandler,
+		getNextQuestionHandler,
 	)
 
 	// REGISTER MIDDLEWARE
 	tg.RegisterMiddleware(interviewConfig.Middlewares.TgUser)
 
 	// REGISTER COMMAND
-	tg.RegisterCommandHandler(startinterview.NewHandler(
-		tgConfig.KeyboardService,
-		interviewConfig.UseCases.GetInterviewOptions,
-		interviewConfig.UseCases.StartInterview,
-		processInterviewHandler,
-	))
 	tg.RegisterCommandHandler(start.NewHandler(tgConfig.KeyboardService))
+	tg.RegisterCommandHandler(startInterviewHandler)
+	tg.RegisterCommandHandler(preStartInterviewHandler)
+	tg.RegisterCommandHandler(finishInterviewHandler)
+	tg.RegisterCommandHandler(getNextQuestionHandler)
 
 	// REGISTER MESSAGE HANDLER
-	tg.RegisterHandler(processInterviewHandler)
+	tg.RegisterHandler(acceptAnswerHandler)
 
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60

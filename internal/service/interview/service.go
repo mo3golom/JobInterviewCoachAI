@@ -67,6 +67,10 @@ func (s *DefaultService) StartInterview(ctx context.Context, in StartInterviewIn
 }
 
 func (s *DefaultService) FinishInterview(ctx context.Context, interview *model.Interview) error {
+	if interview == nil {
+		return nil
+	}
+
 	interview.Status = model.InterviewStatusFinished
 	return s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
 		return s.interviewStorage.UpdateInterview(ctx, tx, interview)

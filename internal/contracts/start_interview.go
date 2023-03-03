@@ -13,6 +13,6 @@ type StartInterviewIn struct {
 	QuestionsCount int64
 }
 
-type StartInterviewUsecase interface {
+type StartInterviewUseCase interface {
 	StartInterview(ctx context.Context, in StartInterviewIn) error
 }

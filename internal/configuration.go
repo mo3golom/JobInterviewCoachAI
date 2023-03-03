@@ -12,6 +12,7 @@ import (
 	"job-interviewer/internal/storage/user"
 	"job-interviewer/internal/usecase/acceptanswer"
 	"job-interviewer/internal/usecase/finishinterview"
+	"job-interviewer/internal/usecase/getinterview"
 	"job-interviewer/internal/usecase/getinterviewoptions"
 	"job-interviewer/internal/usecase/getnextquestion"
 	"job-interviewer/internal/usecase/startinterview"
@@ -20,11 +21,12 @@ import (
 )
 
 type ConfigurationUseCases struct {
-	StartInterview      contracts.StartInterviewUsecase
+	StartInterview      contracts.StartInterviewUseCase
 	FinishInterview     contracts.FinishInterviewUseCase
 	GetNextQuestion     contracts.GetNextQuestionUseCase
 	AcceptAnswer        contracts.AcceptAnswerUseCase
 	GetInterviewOptions contracts.GetInterviewOptionsUseCase
+	GetInterview        contracts.GetInterviewUseCase
 }
 
 type Middlewares struct {
@@ -50,6 +52,7 @@ func NewConfiguration(db *sqlx.DB, transactionalTemplate transactional.Template,
 		GetNextQuestion:     getnextquestion.NewUseCase(interviewService, questionService),
 		AcceptAnswer:        acceptanswer.NewUseCase(interviewService),
 		GetInterviewOptions: getinterviewoptions.NewUseCase(),
+		GetInterview:        getinterview.NewUseCase(interviewService),
 	}
 	middlewares := &Middlewares{
 		TgUser: tguser.NewMiddleware(userStorage, transactionalTemplate),

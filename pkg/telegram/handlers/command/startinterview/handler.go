@@ -6,28 +6,29 @@ import (
 	"job-interviewer/internal/contracts"
 	modelInterview "job-interviewer/internal/model"
 	"job-interviewer/pkg/telegram"
+	"job-interviewer/pkg/telegram/handlers/command"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
 )
 
 type Handler struct {
-	keyboardService       keyboard.Service
-	getInterviewOptionsUC contracts.GetInterviewOptionsUseCase
-	startInterviewUC      contracts.StartInterviewUsecase
-	processHandler        telegram.Handler
+	keyboardService        keyboard.Service
+	getInterviewOptionsUC  contracts.GetInterviewOptionsUseCase
+	startInterviewUC       contracts.StartInterviewUseCase
+	getNextQuestionHandler telegram.Handler
 }
 
 func NewHandler(
 	k keyboard.Service,
 	g contracts.GetInterviewOptionsUseCase,
-	s contracts.StartInterviewUsecase,
+	s contracts.StartInterviewUseCase,
 	pr telegram.Handler,
 ) *Handler {
 	return &Handler{
-		keyboardService:       k,
-		getInterviewOptionsUC: g,
-		startInterviewUC:      s,
-		processHandler:        pr,
+		keyboardService:        k,
+		getInterviewOptionsUC:  g,
+		startInterviewUC:       s,
+		getNextQuestionHandler: pr,
 	}
 }
 
@@ -58,14 +59,14 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 		)
 	}
 
-	command := h.Command()
+	currentCommand := h.Command()
 	_, err := sender.Send(
 		model.NewResponse(request.Chat.ID).
 			SetText(choosePositionText).
 			SetInlineKeyboardMarkup(
-				h.keyboardService.BuildInlineKeyboard(
+				h.keyboardService.BuildInlineKeyboardGrid(
 					keyboard.BuildInlineKeyboardIn{
-						Command: &command,
+						Command: &currentCommand,
 						Buttons: buttons,
 					},
 				),
@@ -77,7 +78,7 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) error {
 	position := request.Data[0]
 
-	command := h.Command()
+	currentCommand := h.Command()
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Levels))
 	for _, level := range interviewOptions.Levels {
@@ -96,9 +97,9 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 		model.NewResponse(request.Chat.ID).
 			SetText(chooseLevelText).
 			SetInlineKeyboardMarkup(
-				h.keyboardService.BuildInlineKeyboard(
+				h.keyboardService.BuildInlineKeyboardGrid(
 					keyboard.BuildInlineKeyboardIn{
-						Command: &command,
+						Command: &currentCommand,
 						Buttons: buttons,
 					},
 				),
@@ -137,16 +138,16 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 			UserID:         request.User.OriginalID,
 			JobPosition:    position,
 			JobLevel:       level,
-			QuestionsCount: 1, //TODO: добавить выбор количества вопросов
+			QuestionsCount: 10, //TODO: добавить выбор количества вопросов
 		},
 	)
 	if err != nil {
 		return err
 	}
 
-	return h.processHandler.Handle(ctx, request, sender)
+	return h.getNextQuestionHandler.Handle(ctx, request, sender)
 }
 
 func (h *Handler) Command() string {
-	return "начать интервью"
+	return command.ForceStartInterviewCommand
 }

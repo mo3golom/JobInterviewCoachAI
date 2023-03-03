@@ -25,7 +25,7 @@ func (h *Handler) Handle(_ context.Context, request *model.Request, sender teleg
 		model.NewResponse(request.Chat.ID).
 			SetText("Hi").
 			SetKeyboardMarkup(
-				h.keyboardService.BuildKeyboard(
+				h.keyboardService.BuildKeyboardGrid(
 					keyboard.BuildKeyboardIn{
 						Buttons: buttons,
 					},
