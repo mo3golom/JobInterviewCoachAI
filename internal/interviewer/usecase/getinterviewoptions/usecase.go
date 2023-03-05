@@ -6,16 +6,16 @@ import (
 )
 
 var (
-	positions = []string{
-		"golang developer",
-		"python developer",
-		"php developer",
+	positions = map[string]string{
+		"0": "golang developer",
+		"1": "python developer",
+		"2": "php developer",
 	}
 
-	levels = []model.JobLevel{
-		model.JobLevelJunior,
-		model.JobLevelMiddle,
-		model.JobLevelSenior,
+	levels = map[string]model.JobLevel{
+		"0": model.JobLevelJunior,
+		"1": model.JobLevelMiddle,
+		"2": model.JobLevelSenior,
 	}
 )
 

@@ -5,8 +5,8 @@ import (
 )
 
 type GetInterviewOptionsOut struct {
-	Positions []string
-	Levels    []model.JobLevel
+	Positions map[string]string
+	Levels    map[string]model.JobLevel
 }
 
 type GetInterviewOptionsUseCase interface {

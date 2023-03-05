@@ -2,6 +2,7 @@ package keyboard
 
 import (
 	"errors"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/telegram/model"
 )
@@ -132,7 +133,10 @@ func buildInlineButton(command *string, button InlineButton) (tgbotapi.InlineKey
 	}
 
 	if len(data) > 21 {
-		return tgbotapi.InlineKeyboardButton{}, errors.New("max data length in button = 21")
+		return tgbotapi.InlineKeyboardButton{},
+			errors.New(
+				fmt.Sprintf("max data length in button = 21, '%s' = %d", data, len(data)),
+			)
 	}
 
 	return tgbotapi.NewInlineKeyboardButtonData(button.Value, data), nil

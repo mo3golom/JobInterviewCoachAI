@@ -9,5 +9,6 @@ import (
 type Service interface {
 	FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error
 	GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender) error
-	HideInlineKeyboard(request *model.Request, sender telegram.Sender) error
+	SaveBotLastMessageID(ctx context.Context, chatID int64, lastBotMessageID int64) error
+	HideInlineKeyboardForBotLastMessage(ctx context.Context, request *model.Request, sender telegram.Sender) error
 }

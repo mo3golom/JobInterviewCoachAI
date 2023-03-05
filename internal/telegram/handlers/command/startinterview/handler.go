@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	interviewContracts "job-interviewer/internal/interviewer/contracts"
-	modelInterview "job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/telegram/handlers/command"
 	"job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
+	"sort"
 )
 
 type Handler struct {
@@ -49,16 +49,20 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender) error {
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Positions))
-	for _, position := range interviewOptions.Positions {
+	for key, position := range interviewOptions.Positions {
 		buttons = append(
 			buttons,
 			keyboard.InlineButton{
 				Value: position,
-				Data:  []string{position},
+				Data:  []string{key},
 				Type:  keyboard.ButtonData,
 			},
 		)
 	}
+
+	sort.Slice(buttons, func(i, j int) bool {
+		return buttons[i].Value < buttons[j].Value
+	})
 
 	currentCommand := h.Command()
 	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardGrid(
@@ -85,16 +89,20 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 	currentCommand := h.Command()
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Levels))
-	for _, level := range interviewOptions.Levels {
+	for key, level := range interviewOptions.Levels {
 		buttons = append(
 			buttons,
 			keyboard.InlineButton{
 				Value: levelToString[level],
-				Data:  []string{position, string(level)},
+				Data:  []string{position, key},
 				Type:  keyboard.ButtonData,
 			},
 		)
 	}
+
+	sort.Slice(buttons, func(i, j int) bool {
+		return buttons[i].Value < buttons[j].Value
+	})
 
 	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
@@ -114,8 +122,9 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 }
 
 func (h *Handler) startInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	position := request.Data[0]
-	level := modelInterview.JobLevel(request.Data[1])
+	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
+	position := interviewOptions.Positions[request.Data[0]]
+	level := interviewOptions.Levels[request.Data[1]]
 
 	err := sender.Update(
 		request.MessageID,

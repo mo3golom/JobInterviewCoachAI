@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"github.com/jmoiron/sqlx"
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/telegram/handlers/command/finishinterview"
 	"job-interviewer/internal/telegram/handlers/command/getnextquestion"
@@ -12,6 +13,7 @@ import (
 	"job-interviewer/internal/telegram/handlers/message/acceptanswer"
 	"job-interviewer/internal/telegram/middleware/user"
 	tgService "job-interviewer/internal/telegram/service"
+	storage2 "job-interviewer/internal/telegram/storage"
 	"job-interviewer/pkg/telegram"
 )
 
@@ -41,11 +43,15 @@ type (
 func NewConfiguration(
 	interviewerConfig *interviewer.Configuration,
 	tgConfig *telegram.Configuration,
+	db *sqlx.DB,
 ) *Configuration {
+	storage := storage2.NewStorage(db)
+
 	service := tgService.NewService(
 		interviewerConfig.UseCases.FinishInterview,
 		interviewerConfig.UseCases.GetNextQuestion,
 		tgConfig.KeyboardService,
+		storage,
 	)
 
 	startInterviewHandler := startinterview.NewHandler(
