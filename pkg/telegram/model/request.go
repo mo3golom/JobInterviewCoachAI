@@ -62,6 +62,11 @@ func NewRequest(in tgbotapi.Update) Request {
 	command, data := StringToCommandWithData(in.CallbackQuery.Data)
 	request.Command = command
 	request.Data = data
+	if in.CallbackQuery.Message != nil {
+		request.Message = &Message{
+			Text: in.CallbackQuery.Message.Text,
+		}
+	}
 
 	return request
 }

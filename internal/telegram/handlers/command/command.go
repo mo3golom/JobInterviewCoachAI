@@ -1,0 +1,10 @@
+package command
+
+const (
+	StartInterviewCommand      = "🆕 Начать новое интервью"
+	ForceStartInterviewCommand = "/frc_strt_ntrvw"
+	FinishInterviewCommand     = "/fnsh_ntrvw"
+	GetNextQuestionCommand     = "/gt_nxt_qstn"
+	MarkQuestionAsBad          = "/mrk_qstn_s_bd"
+	MarkQuestionAsSkip         = "/mrk_qstn_s_skp"
+)

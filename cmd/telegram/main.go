@@ -6,15 +6,10 @@ import (
 	"github.com/joho/godotenv"
 	gogpt "github.com/sashabaranov/go-gpt3"
 	"job-interviewer/cmd"
-	"job-interviewer/internal"
-	"job-interviewer/internal/gpt"
-	"job-interviewer/pkg/telegram"
-	"job-interviewer/pkg/telegram/handlers/command/finishinterview"
-	"job-interviewer/pkg/telegram/handlers/command/getnextquestion"
-	"job-interviewer/pkg/telegram/handlers/command/prestartinterview"
-	"job-interviewer/pkg/telegram/handlers/command/start"
-	"job-interviewer/pkg/telegram/handlers/command/startinterview"
-	"job-interviewer/pkg/telegram/handlers/message/acceptanswer"
+	"job-interviewer/internal/interviewer"
+	"job-interviewer/internal/interviewer/gpt"
+	"job-interviewer/internal/telegram"
+	telegramPkg "job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/transactional"
 	"os"
 )
@@ -32,54 +27,35 @@ func main() {
 	c := gogpt.NewClient(os.Getenv("GPT_API_KEY"))
 	gptGateway := gpt.NewGateway(c)
 
-	tgConfig := telegram.NewConfiguration()
-	tg := tgConfig.Gateway
+	tgPkgConfig := telegramPkg.NewConfiguration()
+	tgPkg := tgPkgConfig.Gateway
 
-	interviewConfig := internal.NewConfiguration(
+	interviewerConfig := interviewer.NewConfiguration(
 		db,
 		template,
 		gptGateway,
 	)
-
-	// HANDLERS
-	finishInterviewHandler := finishinterview.NewHandler(interviewConfig.UseCases.FinishInterview)
-	acceptAnswerHandler := acceptanswer.NewHandler(
-		interviewConfig.UseCases.GetNextQuestion,
-		interviewConfig.UseCases.AcceptAnswer,
-		finishInterviewHandler,
-		tgConfig.KeyboardService,
-	)
-	getNextQuestionHandler := getnextquestion.NewHandler(
-		interviewConfig.UseCases.GetNextQuestion,
-		finishInterviewHandler,
-	)
-	startInterviewHandler := startinterview.NewHandler(
-		tgConfig.KeyboardService,
-		interviewConfig.UseCases.GetInterviewOptions,
-		interviewConfig.UseCases.StartInterview,
-		getNextQuestionHandler,
-	)
-	preStartInterviewHandler := prestartinterview.NewHandler(
-		tgConfig.KeyboardService,
-		interviewConfig.UseCases.GetInterview,
-		startInterviewHandler,
-		getNextQuestionHandler,
+	telegramConfig := telegram.NewConfiguration(
+		interviewerConfig,
+		tgPkgConfig,
 	)
 
 	// REGISTER MIDDLEWARE
-	tg.RegisterMiddleware(interviewConfig.Middlewares.TgUser)
+	tgPkg.RegisterMiddleware(telegramConfig.Middlewares.User)
 
 	// REGISTER COMMAND
-	tg.RegisterCommandHandler(start.NewHandler(tgConfig.KeyboardService))
-	tg.RegisterCommandHandler(startInterviewHandler)
-	tg.RegisterCommandHandler(preStartInterviewHandler)
-	tg.RegisterCommandHandler(finishInterviewHandler)
-	tg.RegisterCommandHandler(getNextQuestionHandler)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.Start)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.StartInterview)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PreStartInterview)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.FinishInterview)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsBad)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsSkip)
 
 	// REGISTER MESSAGE HANDLER
-	tg.RegisterHandler(acceptAnswerHandler)
+	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)
 
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
-	tg.Run(ctx, updateConfig)
+	tgPkg.Run(ctx, updateConfig)
 }

@@ -32,7 +32,8 @@ type (
 
 	Service interface {
 		BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup
-		BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup
-		BuildInlineKeyboardList(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup
+		BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
+		BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
+		BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
 	}
 )

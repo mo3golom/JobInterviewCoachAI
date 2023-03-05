@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"errors"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/telegram/model"
 )
@@ -12,7 +13,7 @@ const (
 type DefaultService struct {
 }
 
-func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup {
+func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
 	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, maxCountButtonsWithoutChunks)
 	chunkSize := maxCountButtonsWithoutChunks
 	for {
@@ -24,24 +25,44 @@ func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) *tgbo
 			chunkSize = len(in.Buttons)
 		}
 
-		keyboard = append(
-			keyboard,
-			buildInlineRow(in.Command, in.Buttons[:chunkSize]),
-		)
+		row, err := buildInlineRow(in.Command, in.Buttons[:chunkSize])
+		if err != nil {
+			return nil, err
+		}
+		keyboard = append(keyboard, row)
 		in.Buttons = in.Buttons[chunkSize:]
 	}
 
 	return &tgbotapi.InlineKeyboardMarkup{
 		InlineKeyboard: keyboard,
-	}
+	}, nil
 }
 
-func (s *DefaultService) BuildInlineKeyboardList(in BuildInlineKeyboardIn) *tgbotapi.InlineKeyboardMarkup {
-	return &tgbotapi.InlineKeyboardMarkup{
-		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{
-			buildInlineRow(in.Command, in.Buttons),
-		},
+func (s *DefaultService) BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
+	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, len(in.Buttons))
+	for _, btn := range in.Buttons {
+		row, err := buildInlineRow(in.Command, []InlineButton{btn})
+		if err != nil {
+			return nil, err
+		}
+
+		keyboard = append(keyboard, row)
+
 	}
+	return &tgbotapi.InlineKeyboardMarkup{
+		InlineKeyboard: keyboard,
+	}, nil
+}
+
+func (s *DefaultService) BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
+	row, err := buildInlineRow(in.Command, in.Buttons)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tgbotapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{row},
+	}, nil
 }
 
 func (s *DefaultService) BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
@@ -81,31 +102,38 @@ func buildRow(buttons []Button) []tgbotapi.KeyboardButton {
 	return result
 }
 
-func buildInlineRow(command *string, buttons []InlineButton) []tgbotapi.InlineKeyboardButton {
+func buildInlineRow(command *string, buttons []InlineButton) ([]tgbotapi.InlineKeyboardButton, error) {
 	result := make([]tgbotapi.InlineKeyboardButton, 0, len(buttons))
 	for _, button := range buttons {
-		result = append(
-			result,
-			buildInlineButton(command, button),
-		)
+		inlineButton, err := buildInlineButton(command, button)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, inlineButton)
 	}
 
-	return result
+	return result, nil
 }
 
 func buildButton(button Button) tgbotapi.KeyboardButton {
 	return tgbotapi.NewKeyboardButton(button.Value)
 }
 
-func buildInlineButton(command *string, button InlineButton) tgbotapi.InlineKeyboardButton {
+func buildInlineButton(command *string, button InlineButton) (tgbotapi.InlineKeyboardButton, error) {
 	data := model.DataToString(button.Data)
 	switch button.Type {
 	case ButtonUrl:
-		return tgbotapi.NewInlineKeyboardButtonURL(button.Value, data)
+		return tgbotapi.NewInlineKeyboardButtonURL(button.Value, data), nil
 	}
 
 	if command != nil {
 		data = model.CommandWithDataToString(*command, button.Data)
 	}
-	return tgbotapi.NewInlineKeyboardButtonData(button.Value, data)
+
+	if len(data) > 21 {
+		return tgbotapi.InlineKeyboardButton{}, errors.New("max data length in button = 21")
+	}
+
+	return tgbotapi.NewInlineKeyboardButtonData(button.Value, data), nil
 }

@@ -51,7 +51,7 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 			request := model.NewRequest(in)
 			err := g.handleUpdate(ctx, &request, senderImpl)
 			if err != nil {
-				log.Println(err)
+				log.Println("ERR: ", err)
 
 				_, _ = senderImpl.Send(
 					model.

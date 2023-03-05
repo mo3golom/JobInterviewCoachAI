@@ -2,7 +2,9 @@ create table if not exists question (
     id UUID primary key not null,
     text text not null,
     job_position text default null,
-    job_level text default null
+    job_level text default null,
+    created_at TIMESTAMPTZ not null default NOW(),
+    updated_at TIMESTAMPTZ not null default NOW()
 );
 
 create table if not exists interview_question (
@@ -10,6 +12,10 @@ create table if not exists interview_question (
     interview_id UUID not null,
     question_id UUID not null,
     status text not null,
+    answer text default null,
+    gpt_comment text default null,
+    created_at TIMESTAMPTZ not null default NOW(),
+    updated_at TIMESTAMPTZ not null default NOW(),
 
     foreign key (interview_id) references interview (id),
     foreign key (question_id) references question (id),
