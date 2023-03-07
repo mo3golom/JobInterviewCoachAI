@@ -7,7 +7,7 @@ name: build
 
 on:
   push:
-    tags: [ 'v*.*' ]
+    tags: [ 'v*.*.*' ]
 
 
 env:
