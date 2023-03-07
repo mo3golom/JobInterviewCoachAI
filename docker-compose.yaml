@@ -1,0 +1,5 @@
+version: '3'
+services:
+  app:
+    image: ghcr.io/mo3golom/jobinterviewcoachai:${GITHUB_SHA}
+    container_name: mo3-app
