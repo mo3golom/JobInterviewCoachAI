@@ -16,9 +16,12 @@ import (
 
 func main() {
 	ctx := context.Background()
-	err := godotenv.Load()
-	if err != nil {
-		panic("Error loading .env file")
+	if _, err := os.Stat(".env"); err == nil {
+		// path/to/whatever exists
+		err := godotenv.Load(".env")
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	db := cmd.MustInitDB(ctx)
