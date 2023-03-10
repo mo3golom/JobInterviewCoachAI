@@ -1,0 +1,19 @@
+name: 'DB migrations based on golang/migrate'
+description: 'DB migrations based on golang/migrate'
+inputs:
+  db-connection:
+    description: 'db connection string'
+    required: true
+  source:
+    description: 'source migrations'
+    required: true
+outputs:
+  log:
+    description: 'migration log'
+runs:
+  using: 'docker'
+  image: 'docker://migrate/migrate'
+  args:
+    - ${{ source }}
+    - ${{ db-connection }}
+  entrypoint: 'entrypoint.sh'

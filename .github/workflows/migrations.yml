@@ -26,5 +26,7 @@ jobs:
 
     steps:
       - name: Migrations
-        run:  migrate -source file://db/migrations -database "${{ env.DB_CONNECTION }}" up >> $GITHUB_OUTPUT
-        shell: bash
+        uses: ./.github/actions/db_migrations
+        with:
+          db-connection: ${{ env.DB_CONNECTION }}
+          source: file://db/migrations
