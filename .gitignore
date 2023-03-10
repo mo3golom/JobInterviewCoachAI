@@ -1,5 +1,5 @@
 /docker/
-/.env.hide
+/.env
 .DS_Store
 
 
