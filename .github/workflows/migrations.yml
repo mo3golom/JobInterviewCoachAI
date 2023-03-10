@@ -28,8 +28,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Check out the repo
-        uses: mo3golom/db-migrations-action
-        with:
-          db-connection: ${{ env.DB_CONNECTION }}
-          source: ./db/migrations
+      - name: Migrations
+        uses: golang-migrate/migrate:latest
+        run:  migrate -source "./db/migrations" -database "${{ env.DB_CONNECTION }}" up >> $GITHUB_OUTPUT
+        shell: bash
