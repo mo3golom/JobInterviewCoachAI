@@ -16,6 +16,8 @@ runs:
   using: 'docker'
   image: 'docker://migrate/migrate'
   args:
+    - '-source'
     - ${{ inputs.source }}
+    - '-database'
     - ${{ inputs.db-connection }}
-  entrypoint: 'migrate -source "$1" -database "$2" up'
+    - 'up'
