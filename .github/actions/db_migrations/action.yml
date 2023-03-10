@@ -4,9 +4,11 @@ inputs:
   db-connection:
     description: 'db connection string'
     required: true
+    default: ""
   source:
     description: 'source migrations'
     required: true
+    default: ""
 outputs:
   log:
     description: 'migration log'
@@ -14,6 +16,6 @@ runs:
   using: 'docker'
   image: 'docker://migrate/migrate'
   args:
-    - ${{ source }}
-    - ${{ db-connection }}
+    - ${{ inputs.source }}
+    - ${{ inputs.db-connection }}
   entrypoint: 'entrypoint.sh'
