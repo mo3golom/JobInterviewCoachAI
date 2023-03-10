@@ -53,6 +53,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   migrations:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
