@@ -19,7 +19,7 @@ env:
 
 jobs:
   build:
-    runs-on: golang-migrate/migrate:latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
