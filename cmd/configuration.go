@@ -11,7 +11,7 @@ import (
 func MustInitDB(ctx context.Context) *sqlx.DB {
 	envType := os.Getenv("ENV")
 
-	sslModeValue := "enable"
+	sslModeValue := "require"
 	if envType != "prod" {
 		sslModeValue = "disable"
 	}
