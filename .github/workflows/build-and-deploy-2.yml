@@ -30,19 +30,18 @@ jobs:
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
           script: |
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
             docker pull ${{ env.REGISTRY }}/mo3golom/jobinterviewcoachai:latest
             docker stop ${{ env.APP_NAME }} || true && docker rm ${{ env.APP_NAME }} || true
             docker system prune -f
-            docker run -d --name=${{ env.APP_NAME }} ${{ env.REGISTRY }}/mo3golom/jobinterviewcoachai:latest \\ 
-            -e ENV=${{ env.APP_ENV }} \\
-            -e GPT_API_KEY='${{ secrets.GPT_API_KEY }}' \\
-            -e DB_USER='${{ secrets.DB_USER }}' \\
-            -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \\
-            -e DB_HOST='${{ secrets.DB_HOST }}' \\
-            -e DB_PORT='${{ secrets.DB_PORT }}' \\
-            -e DB_NAME='${{ secrets.DB_NAME }}' \\
+            docker run -d --name=${{ env.APP_NAME }} ${{ env.REGISTRY }}/mo3golom/jobinterviewcoachai:latest \ 
+            -e ENV=${{ env.APP_ENV }} \
+            -e GPT_API_KEY='${{ secrets.GPT_API_KEY }}' \
+            -e DB_USER='${{ secrets.DB_USER }}' \
+            -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+            -e DB_HOST='${{ secrets.DB_HOST }}' \
+            -e DB_PORT='${{ secrets.DB_PORT }}' \
+            -e DB_NAME='${{ secrets.DB_NAME }}' \
             -e TG_BOT_TOKEN='${{ secrets.TG_BOT_TOKEN }}'
             docker logout ${{ env.REGISTRY }}
