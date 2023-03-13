@@ -14,6 +14,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   APP_NAME: JOB_INTERVIEWER
+  APP_ENV: prod
 
 
 jobs:
@@ -68,7 +69,7 @@ jobs:
           db-connection: postgres://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
           source: file://db/migrations
   deploy:
-    needs: [build, migrations]
+
     runs-on: ubuntu-latest
     permissions:
       packages: read
@@ -94,5 +95,5 @@ jobs:
             -e DB_HOST='${{ secrets.DB_HOST }}' \
             -e DB_PORT='${{ secrets.DB_PORT }}' \
             -e DB_NAME='${{ secrets.DB_NAME }}' \
-            -e TG_BOT_TOKEN='${{ secrets.TG_BOT_TOKEN }}' \
+            -e TG_BOT_TOKEN='${{ secrets.TG_BOT_TOKEN }}'
             docker logout ${{ env.REGISTRY }}
