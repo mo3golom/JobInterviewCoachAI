@@ -1,0 +1,57 @@
+name: build-2
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branch: ["main"]
+
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  APP_NAME: JOB_INTERVIEWER
+  APP_ENV: prod
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: "call action"
+        id: last_release
+        uses: InsonusK/get-latest-release@v1.0.1
+        with:
+          myToken: ${{ github.token }}
+          exclude_types: "draft|prerelease"
+          view_top: 1
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
+            docker pull ${{ env.REGISTRY }}/mo3golom/jobinterviewcoachai:${{ github.sha }}
+            docker stop ${{ env.APP_NAME }} || true && docker rm ${{ env.APP_NAME }} || true
+            docker system prune -f
+            docker run -d --name=${{ env.APP_NAME }} ${{ env.REGISTRY }}/mo3golom/jobinterviewcoachai:${{ github.sha }} \ 
+            -e ENV=${{ env.APP_NEV }} \
+            -e GPT_API_KEY='${{ secrets.GPT_API_KEY }}' \
+            -e DB_USER='${{ secrets.DB_USER }}' \
+            -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+            -e DB_HOST='${{ secrets.DB_HOST }}' \
+            -e DB_PORT='${{ secrets.DB_PORT }}' \
+            -e DB_NAME='${{ secrets.DB_NAME }}' \
+            -e TG_BOT_TOKEN='${{ secrets.TG_BOT_TOKEN }}'
+            docker logout ${{ env.REGISTRY }}

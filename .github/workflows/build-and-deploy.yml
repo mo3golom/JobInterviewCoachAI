@@ -7,8 +7,7 @@ name: build
 
 on:
   push:
-    branch: ["main"]
-
+    tags: [ 'v*.*.*' ]
 
 env:
   REGISTRY: ghcr.io
@@ -69,7 +68,7 @@ jobs:
           db-connection: postgres://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
           source: file://db/migrations
   deploy:
-
+    needs: [build, migrations]
     runs-on: ubuntu-latest
     permissions:
       packages: read
