@@ -35,14 +35,14 @@ jobs:
           envkey_DB_PORT: ${{ secrets.DB_PORT }}
           envkey_DB_NAME: ${{ secrets.DB_NAME }}
           envkey_TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-          directory: deployment
+          directory: .
           file_name: .env
           fail_on_empty: false
       - name: Copy folder content recursively to remote
         uses: garygrossgarten/github-action-scp@release
         with:
-          local: deployment
-          remote: deployment
+          local: ./.env
+          remote: deployment/.env
           host: ${{ secrets.DEPLOY_SSH_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           privateKey: ${{ secrets.DEPLOY_SSH_KEY }}
