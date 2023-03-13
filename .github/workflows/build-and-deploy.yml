@@ -7,14 +7,13 @@ name: build
 
 on:
   push:
-    tags: [ 'v*.*.*' ]
+    branch: ["main"]
 
 
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  APP_NAME: JOB_INTERVIEWER
 
 
 jobs:
