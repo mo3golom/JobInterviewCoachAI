@@ -40,11 +40,6 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	)
 	response := model.NewResponse(request.Chat.ID)
 
-	err = h.service.HideInlineKeyboardForBotLastMessage(ctx, request, sender)
-	if err != nil {
-		return err
-	}
-
 	out, err := h.acceptAnswerUC.AcceptAnswer(
 		ctx,
 		interviewerContracts.AcceptAnswerIn{
@@ -76,9 +71,6 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 			).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
-	if err != nil {
-		return err
-	}
 
-	return h.service.SaveBotLastMessageID(ctx, request.Chat.ID, answerMessageID)
+	return err
 }

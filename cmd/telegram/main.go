@@ -27,10 +27,12 @@ func main() {
 	db := cmd.MustInitDB(ctx)
 	template := transactional.NewTemplate(db)
 
+	log := cmd.MustInitLogger()
+
 	c := gogpt.NewClient(os.Getenv("GPT_API_KEY"))
 	gptGateway := gpt.NewGateway(c)
 
-	tgPkgConfig := telegramPkg.NewConfiguration()
+	tgPkgConfig := telegramPkg.NewConfiguration(log)
 	tgPkg := tgPkgConfig.Gateway
 
 	interviewerConfig := interviewer.NewConfiguration(
