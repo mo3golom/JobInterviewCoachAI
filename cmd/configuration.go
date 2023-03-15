@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"job-interviewer/pkg/logger"
 	"os"
 )
 
@@ -36,4 +37,15 @@ func MustInitDB(ctx context.Context) *sqlx.DB {
 	}
 
 	return db
+}
+
+func MustInitLogger() logger.Logger {
+	envType := os.Getenv("ENV")
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	log, err := logger.NewLogger(envType, sentryDsn)
+	if err != nil {
+		panic(err)
+	}
+
+	return log
 }

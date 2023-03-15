@@ -43,20 +43,11 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 		model.NewResponse(request.Chat.ID).
 			SetText(handlers.FinishText),
 	)
-	if err != nil {
-		return err
-	}
-
-	return s.HideInlineKeyboardForBotLastMessage(ctx, request, sender)
+	return err
 }
 
 func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender) error {
 	response := model.NewResponse(request.Chat.ID)
-
-	err := s.HideInlineKeyboardForBotLastMessage(ctx, request, sender)
-	if err != nil {
-		return err
-	}
 
 	question, err := s.getNextQuestionUC.GetNextQuestion(ctx, request.User.OriginalID)
 	if errors.Is(err, interviewerContracts.ErrNextQuestionEmpty) {
@@ -78,18 +69,16 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 	if err != nil {
 		return err
 	}
-	messageID, err := sender.Send(
+	_, err = sender.Send(
 		response.
 			SetText(fmt.Sprintf(handlers.RobotPrefixText, question.Text)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
-	if err != nil {
-		return err
-	}
 
-	return s.SaveBotLastMessageID(ctx, request.Chat.ID, messageID)
+	return err
 }
 
+// SaveBotLastMessageID Пока не используется, потому что могут быть интересные баги
 func (s *DefaultService) SaveBotLastMessageID(ctx context.Context, chatID int64, lastBotMessageID int64) error {
 	return s.storage.UpsertTelegramBotDetails(
 		ctx,
@@ -100,6 +89,7 @@ func (s *DefaultService) SaveBotLastMessageID(ctx context.Context, chatID int64,
 	)
 }
 
+// HideInlineKeyboardForBotLastMessage Пока не используется, потому что могут быть интересные баги
 func (s *DefaultService) HideInlineKeyboardForBotLastMessage(ctx context.Context, request *model.Request, sender telegram.Sender) error {
 	botLastMessageID, err := s.storage.GetBotLastMessageID(ctx, request.Chat.ID)
 	if errors.Is(err, storage.ErrEmptyTelegramBotDetailsResult) {

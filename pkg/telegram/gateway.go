@@ -4,8 +4,8 @@ import (
 	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/helper"
+	"job-interviewer/pkg/logger"
 	"job-interviewer/pkg/telegram/model"
-	"log"
 )
 
 type DefaultGateway struct {
@@ -13,10 +13,11 @@ type DefaultGateway struct {
 	commandHandlers map[string]Handler
 	messageHandlers []Handler
 	middlewares     []Middleware
+	log             logger.Logger
 }
 
-func NewGateway(c externalClient) *DefaultGateway {
-	return &DefaultGateway{client: c}
+func NewGateway(c externalClient, log logger.Logger) *DefaultGateway {
+	return &DefaultGateway{client: c, log: log}
 }
 
 func (g *DefaultGateway) RegisterMiddleware(middleware Middleware) {
@@ -51,7 +52,7 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 			request := model.NewRequest(in)
 			err := g.handleUpdate(ctx, &request, senderImpl)
 			if err != nil {
-				log.Println("ERR: ", err)
+				g.log.Error("handle update error", err)
 
 				_, _ = senderImpl.Send(
 					model.
