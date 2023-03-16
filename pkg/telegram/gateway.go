@@ -52,7 +52,7 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 			request := model.NewRequest(in)
 			err := g.handleUpdate(ctx, &request, senderImpl)
 			if err != nil {
-				g.log.Error("handle update error", err)
+				g.logHandleUpdateError(&request, err)
 
 				_, _ = senderImpl.Send(
 					model.
@@ -104,4 +104,18 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 func (g *DefaultGateway) determineCommand(request *model.Request) (Handler, bool) {
 	command, ok := g.commandHandlers[request.Command]
 	return command, ok
+}
+
+func (g *DefaultGateway) logHandleUpdateError(request *model.Request, err error) {
+	g.log.Error(
+		"telegram handle update error",
+		err,
+		logger.Field{Key: "user_tg_id", Value: request.User.ID},
+		logger.Field{Key: "user_id", Value: request.User.OriginalID},
+		logger.Field{Key: "chat_id", Value: request.Chat.ID},
+		logger.Field{Key: "tg_update_id", Value: request.UpdateID},
+		logger.Field{Key: "tg_command", Value: request.Command},
+		logger.Field{Key: "tg_message_id", Value: request.MessageID},
+		logger.Field{Key: "tg_message_text", Value: request.Message.Text},
+	)
 }
