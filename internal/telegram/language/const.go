@@ -3,8 +3,8 @@ package language
 import "job-interviewer/pkg/language"
 
 const (
-	English language.Language = iota
-	Russian
+	English language.Language = "en"
+	Russian language.Language = "ru"
 )
 
 const (

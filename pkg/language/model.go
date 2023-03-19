@@ -1,7 +1,7 @@
 package language
 
 type (
-	Language int64
+	Language string
 
 	TextKey string
 )

@@ -6,4 +6,6 @@ const (
 	GetNextQuestionCommand     = "/gt_nxt_qstn"
 	MarkQuestionAsBad          = "/mrk_qstn_s_bd"
 	MarkQuestionAsSkip         = "/mrk_qstn_s_skp"
+
+	StartInterviewCommand = "/start-interview"
 )

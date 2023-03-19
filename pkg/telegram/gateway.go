@@ -27,10 +27,13 @@ func (g *DefaultGateway) RegisterMiddleware(middleware Middleware) {
 	g.middlewares = copyMiddleware
 }
 
-func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler) {
+func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler, aliases ...string) {
 	copyCommandHandlers := helper.CopyMap[string, Handler](g.commandHandlers)
 
 	copyCommandHandlers[handler.Command()] = handler
+	for _, alias := range aliases {
+		copyCommandHandlers[alias] = handler
+	}
 	g.commandHandlers = copyCommandHandlers
 }
 
@@ -57,7 +60,7 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 				_, _ = senderImpl.Send(
 					model.
 						NewResponse(request.Chat.ID).
-						SetText("Что-то пошло не так :("),
+						SetText("Something went wrong :("),
 				)
 			}
 		}(update)
@@ -93,7 +96,7 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 		_, err := sender.Send(
 			model.
 				NewResponse(request.Chat.ID).
-				SetText("Неизвестная команда"),
+				SetText("Unknown command"),
 		)
 		return err
 	}

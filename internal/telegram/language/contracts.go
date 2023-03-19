@@ -8,9 +8,7 @@ type (
 	}
 
 	Service interface {
-		InitUserLanguage(lang language.Language) error
-		GetUserLanguageText(key language.TextKey) string
-		InitInterviewLanguage(lang language.Language) error
-		GetInterviewLanguageText(key language.TextKey) string
+		GetText(lang language.Language, key language.TextKey) string
+		GetTextFromAllLanguages(key language.TextKey) []string
 	}
 )

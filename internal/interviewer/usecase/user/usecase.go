@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
+	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/interviewer/storage/user"
 	"job-interviewer/pkg/transactional"
@@ -21,12 +22,13 @@ func NewUseCase(u user.Storage, t transactional.Template) *UseCase {
 	}
 }
 
-func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, tgUserID int64) (uuid.UUID, error) {
-	var originalID uuid.UUID
+func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, in *contracts.TgUserIn) (*contracts.User, error) {
+	var originalUser *model.User
+
 	err := u.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		existed, err := u.userStorage.FindUserIDByTelegramID(ctx, tx, tgUserID)
+		existed, err := u.userStorage.FindUserIDByTelegramID(ctx, tx, in.ID)
 		if existed != nil {
-			originalID = *existed
+			originalUser = existed
 			return nil
 		}
 
@@ -34,17 +36,23 @@ func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, tgUserID int64)
 			return err
 		}
 
-		originalID = uuid.New()
-		newUser := &model.User{
-			ID: originalID,
+		originalUser = &model.User{
+			ID:   uuid.New(),
+			Lang: in.Lang,
 		}
-		err = u.userStorage.CreateUser(ctx, tx, newUser)
+		err = u.userStorage.CreateUser(ctx, tx, originalUser)
 		if err != nil {
 			return err
 		}
 
-		return u.userStorage.CreateTelegramToUser(ctx, tx, tgUserID, newUser.ID)
+		return u.userStorage.CreateTelegramToUser(ctx, tx, in.ID, originalUser.ID)
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return originalID, err
+	return &contracts.User{
+		ID:   originalUser.ID,
+		Lang: originalUser.Lang,
+	}, nil
 }

@@ -5,6 +5,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserUseCase interface {
-	CreateOrGetUserToTelegram(ctx context.Context, tgUserID int64) (uuid.UUID, error)
-}
+type (
+	User struct {
+		ID   uuid.UUID
+		Lang string
+	}
+
+	TgUserIn struct {
+		ID   int64
+		Lang string
+	}
+
+	UserUseCase interface {
+		CreateOrGetUserToTelegram(ctx context.Context, in *TgUserIn) (*User, error)
+	}
+)

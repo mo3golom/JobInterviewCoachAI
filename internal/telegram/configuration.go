@@ -39,8 +39,9 @@ type (
 	}
 
 	Configuration struct {
-		Handlers    *ConfigurationHandlers
-		Middlewares *Middlewares
+		Handlers        *ConfigurationHandlers
+		Middlewares     *Middlewares
+		LanguageService language.Service
 	}
 )
 
@@ -54,14 +55,6 @@ func NewConfiguration(
 		language.English: en.Dict{},
 		language.Russian: ru.Dict{},
 	})
-	err := languageService.InitUserLanguage(language.Russian)
-	if err != nil {
-		panic(err)
-	}
-	err = languageService.InitInterviewLanguage(language.English)
-	if err != nil {
-		panic(err)
-	}
 
 	service := tgService.NewService(
 		interviewerConfig.UseCases.FinishInterview,
@@ -107,7 +100,8 @@ func NewConfiguration(
 	}
 
 	return &Configuration{
-		Handlers:    configurationHandlers,
-		Middlewares: middlewares,
+		Handlers:        configurationHandlers,
+		Middlewares:     middlewares,
+		LanguageService: languageService,
 	}
 }

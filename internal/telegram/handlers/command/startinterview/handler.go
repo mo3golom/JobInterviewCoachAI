@@ -7,6 +7,7 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -51,6 +52,8 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 }
 
 func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
+
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Positions))
 	for key, position := range interviewOptions.Positions {
@@ -81,13 +84,14 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 
 	_, err = sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(h.languageService.GetUserLanguageText(languageService.ChoosePosition)).
+			SetText(h.languageService.GetText(userLang, languageService.ChoosePosition)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 	return err
 }
 
 func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
 	position := request.Data[0]
 
 	currentCommand := h.Command()
@@ -120,12 +124,13 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 	return sender.Update(
 		request.MessageID,
 		model.NewResponse(request.Chat.ID).
-			SetText(h.languageService.GetUserLanguageText(languageService.ChooseLevel)).
+			SetText(h.languageService.GetText(userLang, languageService.ChooseLevel)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 }
 
 func (h *Handler) startInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	position := interviewOptions.Positions[request.Data[0]]
 	level := interviewOptions.Levels[request.Data[1]]
@@ -135,7 +140,7 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 		model.NewResponse(request.Chat.ID).
 			SetText(
 				fmt.Sprintf(
-					h.languageService.GetUserLanguageText(languageService.StartInterviewSummary),
+					h.languageService.GetText(userLang, languageService.StartInterviewSummary),
 					position,
 					levelToString[level],
 				),
@@ -147,7 +152,7 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 	}
 
 	_, err = sender.Send(model.NewResponse(request.Chat.ID).SetText(
-		h.languageService.GetUserLanguageText(languageService.LoadQuestions)),
+		h.languageService.GetText(userLang, languageService.LoadQuestions)),
 	)
 	if err != nil {
 		return err

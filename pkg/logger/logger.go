@@ -47,7 +47,7 @@ func (l DefaultLogger) Info(msg string, fields ...Field) {
 
 func (l DefaultLogger) Error(msg string, err error, fields ...Field) {
 	fieldsMap := fieldsToMap(fields)
-
+	fieldsMap["error"] = err.Error()
 	log.WithFields(fieldsMap).Error(msg)
 
 	if !l.enableSentry {
@@ -57,7 +57,6 @@ func (l DefaultLogger) Error(msg string, err error, fields ...Field) {
 		scope.SetLevel(sentry.LevelError)
 
 		scope.SetExtras(fieldsMap)
-		scope.SetExtra("error", err.Error())
 		sentry.CaptureMessage(msg)
 	})
 }

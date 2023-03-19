@@ -1,53 +1,43 @@
 package language
 
 import (
-	"errors"
 	"job-interviewer/pkg/language"
 )
 
 type DefaultService struct {
-	dictionaries             map[language.Language]Dictionary
+	storages                 map[language.Language]language.Storage
 	userLanguageStorage      language.Storage
 	interviewLanguageStorage language.Storage
 }
 
+func (s *DefaultService) GetTextFromAllLanguages(key language.TextKey) []string {
+	result := make([]string, 0, len(s.storages))
+	for _, storage := range s.storages {
+		text := storage.GetText(key)
+		if text == "" {
+			continue
+		}
+
+		result = append(result, text)
+	}
+
+	return result
+}
+
 func NewService(dictionaries map[language.Language]Dictionary) *DefaultService {
-	return &DefaultService{dictionaries: dictionaries}
-}
-
-func (s *DefaultService) InitUserLanguage(lang language.Language) error {
-	storage, err := s.init(lang)
-	if err != nil {
-		return err
+	storages := make(map[language.Language]language.Storage, len(dictionaries))
+	for lang, dict := range dictionaries {
+		storages[lang] = language.NewStorage(dict.GetTexts())
 	}
 
-	s.userLanguageStorage = storage
-	return nil
+	return &DefaultService{storages: storages}
 }
 
-func (s *DefaultService) GetUserLanguageText(key language.TextKey) string {
-	return s.userLanguageStorage.GetText(key)
-}
-
-func (s *DefaultService) InitInterviewLanguage(lang language.Language) error {
-	storage, err := s.init(lang)
-	if err != nil {
-		return err
-	}
-
-	s.interviewLanguageStorage = storage
-	return nil
-}
-
-func (s *DefaultService) GetInterviewLanguageText(key language.TextKey) string {
-	return s.interviewLanguageStorage.GetText(key)
-}
-
-func (s *DefaultService) init(lang language.Language) (language.Storage, error) {
-	dict, ok := s.dictionaries[lang]
+func (s *DefaultService) GetText(lang language.Language, key language.TextKey) string {
+	storage, ok := s.storages[lang]
 	if !ok {
-		return nil, errors.New("not found language dictionary")
+		return ""
 	}
 
-	return language.NewStorage(dict.GetTexts()), nil
+	return storage.GetText(key)
 }

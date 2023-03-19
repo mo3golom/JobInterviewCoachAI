@@ -7,6 +7,7 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -37,6 +38,8 @@ func NewHandler(
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
+
 	_, err := h.getInterviewUC.GetActiveInterview(ctx, request.User.OriginalID)
 	if errors.Is(err, interviewContracts.ErrEmptyActiveInterview) {
 		return h.startHandler.Handle(ctx, request, sender)
@@ -49,12 +52,12 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		keyboard.BuildInlineKeyboardIn{
 			Buttons: []keyboard.InlineButton{
 				{
-					Value: h.languageService.GetUserLanguageText(languageService.ContinueInterview),
+					Value: h.languageService.GetText(userLang, languageService.ContinueInterview),
 					Data:  []string{command.GetNextQuestionCommand},
 					Type:  keyboard.ButtonData,
 				},
 				{
-					Value: h.languageService.GetUserLanguageText(languageService.StartInterviewShort),
+					Value: h.languageService.GetText(userLang, languageService.StartInterviewShort),
 					Data:  []string{command.ForceStartInterviewCommand},
 					Type:  keyboard.ButtonData,
 				},
@@ -66,12 +69,12 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	}
 	_, err = sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(h.languageService.GetUserLanguageText(languageService.ActiveInterviewExists)).
+			SetText(h.languageService.GetText(userLang, languageService.ActiveInterviewExists)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 	return err
 }
 
 func (h *Handler) Command() string {
-	return h.languageService.GetUserLanguageText(languageService.StartInterview)
+	return command.StartInterviewCommand
 }

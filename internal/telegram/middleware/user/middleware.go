@@ -17,13 +17,20 @@ func NewMiddleware(u contracts.UserUseCase) *Middleware {
 }
 
 func (m *Middleware) Handle(ctx context.Context, request *tgModel.Request) error {
-	tgUser := request.User
-
-	originalID, err := m.userUC.CreateOrGetUserToTelegram(ctx, tgUser.ID)
+	user, err := m.userUC.CreateOrGetUserToTelegram(
+		ctx,
+		&contracts.TgUserIn{
+			ID:   request.User.ID,
+			Lang: request.User.Lang,
+		},
+	)
 	if err != nil {
 		return err
 	}
 
-	request.User.OriginalID = originalID
+	request.User.OriginalID = user.ID
+	if user.Lang != "" {
+		request.User.Lang = user.Lang
+	}
 	return nil
 }

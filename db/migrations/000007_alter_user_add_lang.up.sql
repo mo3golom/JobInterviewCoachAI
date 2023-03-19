@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN lang text default '';

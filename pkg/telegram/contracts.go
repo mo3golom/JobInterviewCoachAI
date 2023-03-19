@@ -28,7 +28,7 @@ type (
 
 	Gateway interface {
 		RegisterMiddleware(middleware Middleware)
-		RegisterCommandHandler(handler CommandHandler)
+		RegisterCommandHandler(handler CommandHandler, aliases ...string)
 		RegisterHandler(handler Handler)
 		Run(ctx context.Context, config tgbotapi.UpdateConfig)
 	}

@@ -25,6 +25,7 @@ type (
 	User struct {
 		ID         int64
 		OriginalID uuid.UUID
+		Lang       string
 	}
 
 	Message struct {
@@ -41,7 +42,8 @@ func NewRequest(in tgbotapi.Update) Request {
 			ID: chat.ID,
 		},
 		User: &User{
-			ID: user.ID,
+			ID:   user.ID,
+			Lang: user.LanguageCode,
 		},
 	}
 

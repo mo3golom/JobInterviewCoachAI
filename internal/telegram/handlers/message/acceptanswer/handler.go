@@ -9,6 +9,7 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -36,6 +37,8 @@ func NewHandler(
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
+
 	if request.Message == nil {
 		return nil
 	}
@@ -45,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 			fmt.Sprintf(
 				"%s %s",
 				handlers.RobotPrefix,
-				h.languageService.GetInterviewLanguageText(languageService.ProcessingAnswer),
+				h.languageService.GetText(languageService.English, languageService.ProcessingAnswer),
 			),
 		),
 	)
@@ -71,12 +74,12 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardInlineList(keyboard.BuildInlineKeyboardIn{
 		Buttons: []keyboard.InlineButton{
 			{
-				Value: h.languageService.GetUserLanguageText(languageService.FinishInterview),
+				Value: h.languageService.GetText(userLang, languageService.FinishInterview),
 				Data:  []string{command.FinishInterviewCommand},
 				Type:  keyboard.ButtonData,
 			},
 			{
-				Value: h.languageService.GetUserLanguageText(languageService.ContinueInterview),
+				Value: h.languageService.GetText(userLang, languageService.ContinueInterview),
 				Data:  []string{command.GetNextQuestionCommand},
 				Type:  keyboard.ButtonData,
 			},

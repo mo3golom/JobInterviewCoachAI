@@ -9,6 +9,7 @@ import (
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/telegram"
+	languageService "job-interviewer/internal/telegram/language"
 	telegramPkg "job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/transactional"
 	"os"
@@ -52,7 +53,10 @@ func main() {
 	// REGISTER COMMAND
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.Start)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.StartInterview)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PreStartInterview)
+	tgPkg.RegisterCommandHandler(
+		telegramConfig.Handlers.PreStartInterview,
+		telegramConfig.LanguageService.GetTextFromAllLanguages(languageService.StartInterview)...,
+	)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.FinishInterview)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsBad)

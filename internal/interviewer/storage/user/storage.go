@@ -9,7 +9,8 @@ import (
 )
 
 type sqlxUser struct {
-	ID uuid.UUID `db:"id"`
+	ID   uuid.UUID `db:"id"`
+	Lang string    `db:"lang"`
 }
 
 type sqlxTelegramUser struct {
@@ -28,8 +29,8 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 func (s *DefaultStorage) CreateUser(ctx context.Context, tx transactional.Tx, user *model.User) error {
 	query := `
 		INSERT 
-		INTO "user" (id) 
-		VALUES (:id)
+		INTO "user" (id, lang) 
+		VALUES (:id, :lang)
 		ON CONFLICT DO NOTHING 
     `
 
@@ -37,7 +38,8 @@ func (s *DefaultStorage) CreateUser(ctx context.Context, tx transactional.Tx, us
 		ctx,
 		query,
 		sqlxUser{
-			ID: user.ID,
+			ID:   user.ID,
+			Lang: user.Lang,
 		},
 	)
 	return err
@@ -62,14 +64,15 @@ func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactio
 	return err
 }
 
-func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*uuid.UUID, error) {
+func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*model.User, error) {
 	query := `
-		SELECT user_id 
-		FROM user_telegram
+		SELECT u.id, u.lang 
+		FROM user_telegram as ut
+		JOIN "user" as u on u.id = ut.user_id
 		WHERE telegram_id = $1
     `
 
-	var results []sqlxTelegramUser
+	var results []sqlxUser
 	err := tx.SelectContext(
 		ctx,
 		&results,
@@ -84,6 +87,8 @@ func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transact
 		return nil, ErrEmptyUserResult
 	}
 
-	userID := results[0].UserID
-	return &userID, nil
+	return &model.User{
+		ID:   results[0].ID,
+		Lang: results[0].Lang,
+	}, nil
 }

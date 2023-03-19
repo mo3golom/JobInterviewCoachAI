@@ -8,6 +8,7 @@ import (
 	"job-interviewer/internal/telegram/handlers"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/storage"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -38,15 +39,17 @@ func NewService(
 }
 
 func (s *DefaultService) Start(request *model.Request, sender telegram.Sender) error {
+	userLang := language.Language(request.User.Lang)
+
 	_, err := sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(s.languageService.GetUserLanguageText(languageService.Start)).
+			SetText(s.languageService.GetText(userLang, languageService.Start)).
 			SetKeyboardMarkup(
 				s.keyboardService.BuildKeyboardGrid(
 					keyboard.BuildKeyboardIn{
 						Buttons: []keyboard.Button{
 							{
-								Value: s.languageService.GetUserLanguageText(languageService.StartInterview),
+								Value: s.languageService.GetText(userLang, languageService.StartInterview),
 							},
 						},
 					},
@@ -69,7 +72,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 				fmt.Sprintf(
 					"%s %s",
 					handlers.RobotPrefix,
-					s.languageService.GetInterviewLanguageText(languageService.FinishInterviewSummary),
+					s.languageService.GetText(languageService.English, languageService.FinishInterviewSummary),
 				),
 			),
 	)
@@ -88,7 +91,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 			fmt.Sprintf(
 				"%s %s",
 				handlers.RobotPrefix,
-				s.languageService.GetInterviewLanguageText(languageService.NotFoundActiveInterview),
+				s.languageService.GetText(languageService.English, languageService.NotFoundActiveInterview),
 			),
 		))
 		return err
