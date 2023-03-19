@@ -6,6 +6,8 @@ import (
 	"fmt"
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
+	"job-interviewer/internal/telegram/handlers/command"
+	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
@@ -16,17 +18,20 @@ type Handler struct {
 	acceptAnswerUC  interviewerContracts.AcceptAnswerUseCase
 	keyboardService keyboard.Service
 	service         service.Service
+	languageService languageService.Service
 }
 
 func NewHandler(
 	auc interviewerContracts.AcceptAnswerUseCase,
 	s service.Service,
 	ks keyboard.Service,
+	l languageService.Service,
 ) *Handler {
 	return &Handler{
 		acceptAnswerUC:  auc,
 		service:         s,
 		keyboardService: ks,
+		languageService: l,
 	}
 }
 
@@ -36,7 +41,13 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	}
 
 	answerMessageID, err := sender.Send(
-		model.NewResponse(request.Chat.ID).SetText(handlers.ProcessingAnswerText),
+		model.NewResponse(request.Chat.ID).SetText(
+			fmt.Sprintf(
+				"%s %s",
+				handlers.RobotPrefix,
+				h.languageService.GetInterviewLanguageText(languageService.ProcessingAnswer),
+			),
+		),
 	)
 	response := model.NewResponse(request.Chat.ID)
 
@@ -51,14 +62,25 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		return h.service.FinishInterview(ctx, request, sender)
 	}
 	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
-		return nil //TODO: добавить возврат стартового меню
+		return h.service.Start(request, sender)
 	}
 	if err != nil {
 		return err
 	}
 
 	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardInlineList(keyboard.BuildInlineKeyboardIn{
-		Buttons: acceptAnswerButtons,
+		Buttons: []keyboard.InlineButton{
+			{
+				Value: h.languageService.GetUserLanguageText(languageService.FinishInterview),
+				Data:  []string{command.FinishInterviewCommand},
+				Type:  keyboard.ButtonData,
+			},
+			{
+				Value: h.languageService.GetUserLanguageText(languageService.ContinueInterview),
+				Data:  []string{command.GetNextQuestionCommand},
+				Type:  keyboard.ButtonData,
+			},
+		},
 	})
 	if err != nil {
 		return err
@@ -67,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		answerMessageID,
 		response.
 			SetText(
-				fmt.Sprintf(handlers.RobotPrefixText, out),
+				fmt.Sprintf("%s %s", handlers.RobotPrefix, out),
 			).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)

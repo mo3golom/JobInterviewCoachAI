@@ -2,37 +2,25 @@ package start
 
 import (
 	"context"
+	"job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
-	"job-interviewer/pkg/telegram/service/keyboard"
 )
 
 type Handler struct {
-	keyboardService keyboard.Service
+	service service.Service
 }
 
 func NewHandler(
-	k keyboard.Service,
+	service service.Service,
 ) *Handler {
 	return &Handler{
-		keyboardService: k,
+		service: service,
 	}
 }
 
 func (h *Handler) Handle(_ context.Context, request *model.Request, sender telegram.Sender) error {
-	_, err := sender.Send(
-		model.NewResponse(request.Chat.ID).
-			SetText("Hi").
-			SetKeyboardMarkup(
-				h.keyboardService.BuildKeyboardGrid(
-					keyboard.BuildKeyboardIn{
-						Buttons: buttons,
-					},
-				),
-			),
-	)
-
-	return err
+	return h.service.Start(request, sender)
 }
 
 func (h *Handler) Command() string {

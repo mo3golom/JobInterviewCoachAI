@@ -5,6 +5,7 @@ import (
 	"fmt"
 	interviewContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers/command"
+	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
@@ -17,6 +18,7 @@ type Handler struct {
 	getInterviewOptionsUC interviewContracts.GetInterviewOptionsUseCase
 	startInterviewUC      interviewContracts.StartInterviewUseCase
 	service               service.Service
+	languageService       languageService.Service
 }
 
 func NewHandler(
@@ -24,12 +26,14 @@ func NewHandler(
 	g interviewContracts.GetInterviewOptionsUseCase,
 	s interviewContracts.StartInterviewUseCase,
 	service service.Service,
+	l languageService.Service,
 ) *Handler {
 	return &Handler{
 		keyboardService:       k,
 		getInterviewOptionsUC: g,
 		startInterviewUC:      s,
 		service:               service,
+		languageService:       l,
 	}
 }
 
@@ -77,7 +81,7 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 
 	_, err = sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(choosePositionText).
+			SetText(h.languageService.GetUserLanguageText(languageService.ChoosePosition)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 	return err
@@ -116,7 +120,7 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 	return sender.Update(
 		request.MessageID,
 		model.NewResponse(request.Chat.ID).
-			SetText(chooseLevelText).
+			SetText(h.languageService.GetUserLanguageText(languageService.ChooseLevel)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 }
@@ -131,7 +135,7 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 		model.NewResponse(request.Chat.ID).
 			SetText(
 				fmt.Sprintf(
-					startInterviewText,
+					h.languageService.GetUserLanguageText(languageService.StartInterviewSummary),
 					position,
 					levelToString[level],
 				),
@@ -142,7 +146,9 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 		return err
 	}
 
-	_, err = sender.Send(model.NewResponse(request.Chat.ID).SetText(loadQuestionsText))
+	_, err = sender.Send(model.NewResponse(request.Chat.ID).SetText(
+		h.languageService.GetUserLanguageText(languageService.LoadQuestions)),
+	)
 	if err != nil {
 		return err
 	}

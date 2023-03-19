@@ -11,9 +11,13 @@ import (
 	"job-interviewer/internal/telegram/handlers/command/start"
 	"job-interviewer/internal/telegram/handlers/command/startinterview"
 	"job-interviewer/internal/telegram/handlers/message/acceptanswer"
+	"job-interviewer/internal/telegram/language"
+	"job-interviewer/internal/telegram/language/en"
+	"job-interviewer/internal/telegram/language/ru"
 	"job-interviewer/internal/telegram/middleware/user"
 	tgService "job-interviewer/internal/telegram/service"
 	storage2 "job-interviewer/internal/telegram/storage"
+	language2 "job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 )
 
@@ -46,12 +50,25 @@ func NewConfiguration(
 	db *sqlx.DB,
 ) *Configuration {
 	storage := storage2.NewStorage(db)
+	languageService := language.NewService(map[language2.Language]language.Dictionary{
+		language.English: en.Dict{},
+		language.Russian: ru.Dict{},
+	})
+	err := languageService.InitUserLanguage(language.Russian)
+	if err != nil {
+		panic(err)
+	}
+	err = languageService.InitInterviewLanguage(language.English)
+	if err != nil {
+		panic(err)
+	}
 
 	service := tgService.NewService(
 		interviewerConfig.UseCases.FinishInterview,
 		interviewerConfig.UseCases.GetNextQuestion,
 		tgConfig.KeyboardService,
 		storage,
+		languageService,
 	)
 
 	startInterviewHandler := startinterview.NewHandler(
@@ -59,16 +76,18 @@ func NewConfiguration(
 		interviewerConfig.UseCases.GetInterviewOptions,
 		interviewerConfig.UseCases.StartInterview,
 		service,
+		languageService,
 	)
 	preStartInterviewHandler := prestartinterview.NewHandler(
 		tgConfig.KeyboardService,
 		interviewerConfig.UseCases.GetInterview,
 		startInterviewHandler,
 		service,
+		languageService,
 	)
 
 	configurationHandlers := &ConfigurationHandlers{
-		Start:              start.NewHandler(tgConfig.KeyboardService),
+		Start:              start.NewHandler(service),
 		PreStartInterview:  preStartInterviewHandler,
 		StartInterview:     startInterviewHandler,
 		FinishInterview:    finishinterview.NewHandler(service),
@@ -79,6 +98,7 @@ func NewConfiguration(
 			interviewerConfig.UseCases.AcceptAnswer,
 			service,
 			tgConfig.KeyboardService,
+			languageService,
 		),
 	}
 

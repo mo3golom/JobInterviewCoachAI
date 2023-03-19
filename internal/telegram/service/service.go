@@ -6,6 +6,7 @@ import (
 	"fmt"
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
+	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/storage"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
@@ -17,6 +18,7 @@ type DefaultService struct {
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase
 	keyboardService   keyboard.Service
 	storage           storage.Storage
+	languageService   languageService.Service
 }
 
 func NewService(
@@ -24,13 +26,35 @@ func NewService(
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase,
 	keyboardService keyboard.Service,
 	storage storage.Storage,
+	l languageService.Service,
 ) *DefaultService {
 	return &DefaultService{
 		finishInterviewUC: finishInterviewUC,
 		getNextQuestionUC: getNextQuestionUC,
 		keyboardService:   keyboardService,
 		storage:           storage,
+		languageService:   l,
 	}
+}
+
+func (s *DefaultService) Start(request *model.Request, sender telegram.Sender) error {
+	_, err := sender.Send(
+		model.NewResponse(request.Chat.ID).
+			SetText(s.languageService.GetUserLanguageText(languageService.Start)).
+			SetKeyboardMarkup(
+				s.keyboardService.BuildKeyboardGrid(
+					keyboard.BuildKeyboardIn{
+						Buttons: []keyboard.Button{
+							{
+								Value: s.languageService.GetUserLanguageText(languageService.StartInterview),
+							},
+						},
+					},
+				),
+			),
+	)
+
+	return err
 }
 
 func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
@@ -41,7 +65,13 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 
 	_, err = sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(handlers.FinishText),
+			SetText(
+				fmt.Sprintf(
+					"%s %s",
+					handlers.RobotPrefix,
+					s.languageService.GetInterviewLanguageText(languageService.FinishInterviewSummary),
+				),
+			),
 	)
 	return err
 }
@@ -54,7 +84,13 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 		return s.FinishInterview(ctx, request, sender)
 	}
 	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
-		_, err = sender.Send(response.SetText(handlers.NoActiveInterviewText))
+		_, err = sender.Send(response.SetText(
+			fmt.Sprintf(
+				"%s %s",
+				handlers.RobotPrefix,
+				s.languageService.GetInterviewLanguageText(languageService.NotFoundActiveInterview),
+			),
+		))
 		return err
 	}
 	if err != nil {
@@ -71,7 +107,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 	}
 	_, err = sender.Send(
 		response.
-			SetText(fmt.Sprintf(handlers.RobotPrefixText, question.Text)).
+			SetText(fmt.Sprintf("%s %s", handlers.RobotPrefix, question.Text)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 

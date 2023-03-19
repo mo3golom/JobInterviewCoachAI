@@ -1,7 +1,6 @@
 package command
 
 const (
-	StartInterviewCommand      = "🆕 Начать новое интервью"
 	ForceStartInterviewCommand = "/strt_ntrvw"
 	FinishInterviewCommand     = "/fnsh_ntrvw"
 	GetNextQuestionCommand     = "/gt_nxt_qstn"

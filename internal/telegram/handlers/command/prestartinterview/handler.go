@@ -5,6 +5,7 @@ import (
 	"errors"
 	interviewContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers/command"
+	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
@@ -16,6 +17,7 @@ type Handler struct {
 	keyboardService keyboard.Service
 	startHandler    telegram.Handler
 	service         service.Service
+	languageService languageService.Service
 }
 
 func NewHandler(
@@ -23,12 +25,14 @@ func NewHandler(
 	g interviewContracts.GetInterviewUseCase,
 	startInterviewHandler telegram.Handler,
 	s service.Service,
+	l languageService.Service,
 ) *Handler {
 	return &Handler{
 		keyboardService: k,
 		getInterviewUC:  g,
 		startHandler:    startInterviewHandler,
 		service:         s,
+		languageService: l,
 	}
 }
 
@@ -43,7 +47,18 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 
 	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
-			Buttons: existsActiveInterviewButtons,
+			Buttons: []keyboard.InlineButton{
+				{
+					Value: h.languageService.GetUserLanguageText(languageService.ContinueInterview),
+					Data:  []string{command.GetNextQuestionCommand},
+					Type:  keyboard.ButtonData,
+				},
+				{
+					Value: h.languageService.GetUserLanguageText(languageService.StartInterviewShort),
+					Data:  []string{command.ForceStartInterviewCommand},
+					Type:  keyboard.ButtonData,
+				},
+			},
 		},
 	)
 	if err != nil {
@@ -51,12 +66,12 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	}
 	_, err = sender.Send(
 		model.NewResponse(request.Chat.ID).
-			SetText(activeInterviewExistsText).
+			SetText(h.languageService.GetUserLanguageText(languageService.ActiveInterviewExists)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 	return err
 }
 
 func (h *Handler) Command() string {
-	return command.StartInterviewCommand
+	return h.languageService.GetUserLanguageText(languageService.StartInterview)
 }
