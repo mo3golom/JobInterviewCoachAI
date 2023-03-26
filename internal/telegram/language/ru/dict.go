@@ -27,7 +27,10 @@ func (d Dict) GetTexts() map[language.TextKey]string {
 Позиция: %s
 Уровень: %s
         `,
-		languageService.LoadQuestions:   "🔄 Нейросеть подготавливает вопросы, одну минутку...",
-		languageService.FinishInterview: "️⏏️️ Завершить",
+		languageService.LoadQuestions:          "🔄 Нейросеть подготавливает вопросы, одну минутку...",
+		languageService.FinishInterview:        "️⏏️️ Завершить",
+		languageService.ChooseLanguage:         "Выберите язык интерфейса бота",
+		languageService.ChooseLanguageSettings: "⚙️ Сменить язык",
+		languageService.ChooseLanguageSuccess:  "Язык изменен успешно!",
 	}
 }

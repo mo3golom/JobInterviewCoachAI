@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
+	"job-interviewer/pkg/language"
 	"strings"
 )
 
@@ -25,7 +26,7 @@ type (
 	User struct {
 		ID         int64
 		OriginalID uuid.UUID
-		Lang       string
+		Lang       language.Language
 	}
 
 	Message struct {
@@ -43,7 +44,7 @@ func NewRequest(in tgbotapi.Update) Request {
 		},
 		User: &User{
 			ID:   user.ID,
-			Lang: user.LanguageCode,
+			Lang: language.Language(user.LanguageCode),
 		},
 	}
 

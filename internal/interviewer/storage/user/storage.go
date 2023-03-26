@@ -5,12 +5,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"job-interviewer/internal/interviewer/model"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/transactional"
 )
 
 type sqlxUser struct {
-	ID   uuid.UUID `db:"id"`
-	Lang string    `db:"lang"`
+	ID   uuid.UUID         `db:"id"`
+	Lang language.Language `db:"lang"`
 }
 
 type sqlxTelegramUser struct {
@@ -91,4 +92,19 @@ func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transact
 		ID:   results[0].ID,
 		Lang: results[0].Lang,
 	}, nil
+}
+
+func (s *DefaultStorage) UpdateLanguage(ctx context.Context, tx transactional.Tx, userID uuid.UUID, language language.Language) error {
+	query := `
+       UPDATE "user" SET
+        lang = :lang
+       WHERE id = :id
+    `
+
+	in := sqlxUser{
+		ID:   userID,
+		Lang: language,
+	}
+	_, err := tx.NamedExecContext(ctx, query, in)
+	return err
 }

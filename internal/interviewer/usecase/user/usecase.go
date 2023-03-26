@@ -7,6 +7,7 @@ import (
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/interviewer/storage/user"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/transactional"
 )
 
@@ -55,4 +56,10 @@ func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, in *contracts.T
 		ID:   originalUser.ID,
 		Lang: originalUser.Lang,
 	}, nil
+}
+
+func (u *UseCase) ChangeLanguage(ctx context.Context, userID uuid.UUID, language language.Language) error {
+	return u.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+		return u.userStorage.UpdateLanguage(ctx, tx, userID, language)
+	})
 }

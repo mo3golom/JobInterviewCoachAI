@@ -3,6 +3,7 @@ package telegram
 import (
 	"github.com/jmoiron/sqlx"
 	"job-interviewer/internal/interviewer"
+	"job-interviewer/internal/telegram/handlers/command/changeuserlanguage"
 	"job-interviewer/internal/telegram/handlers/command/finishinterview"
 	"job-interviewer/internal/telegram/handlers/command/getnextquestion"
 	"job-interviewer/internal/telegram/handlers/command/prestartinterview"
@@ -30,6 +31,7 @@ type (
 		GetNextQuestion    telegram.CommandHandler
 		MarkQuestionAsBad  telegram.CommandHandler
 		MarkQuestionAsSkip telegram.CommandHandler
+		ChangeUserLanguage telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
 	}
@@ -89,6 +91,12 @@ func NewConfiguration(
 		MarkQuestionAsSkip: questionskip.NewHandler(interviewerConfig.UseCases.UpdateQuestion, service),
 		AcceptAnswer: acceptanswer.NewHandler(
 			interviewerConfig.UseCases.AcceptAnswer,
+			service,
+			tgConfig.KeyboardService,
+			languageService,
+		),
+		ChangeUserLanguage: changeuserlanguage.NewHandler(
+			interviewerConfig.UseCases.User,
 			service,
 			tgConfig.KeyboardService,
 			languageService,

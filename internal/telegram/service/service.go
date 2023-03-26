@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
 	languageService "job-interviewer/internal/telegram/language"
@@ -39,22 +40,12 @@ func NewService(
 }
 
 func (s *DefaultService) Start(request *model.Request, sender telegram.Sender) error {
-	userLang := language.Language(request.User.Lang)
+	userLang := request.User.Lang
 
 	_, err := sender.Send(
 		model.NewResponse(request.Chat.ID).
 			SetText(s.languageService.GetText(userLang, languageService.Start)).
-			SetKeyboardMarkup(
-				s.keyboardService.BuildKeyboardGrid(
-					keyboard.BuildKeyboardIn{
-						Buttons: []keyboard.Button{
-							{
-								Value: s.languageService.GetText(userLang, languageService.StartInterview),
-							},
-						},
-					},
-				),
-			),
+			SetKeyboardMarkup(s.GetUserMainKeyboard(userLang)),
 	)
 
 	return err
@@ -151,5 +142,20 @@ func (s *DefaultService) HideInlineKeyboardForBotLastMessage(ctx context.Context
 		model.NewResponse(request.Chat.ID).
 			SetText(messageText).
 			SetInlineKeyboardMarkup(nil),
+	)
+}
+
+func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.ReplyKeyboardMarkup {
+	return s.keyboardService.BuildKeyboardGrid(
+		keyboard.BuildKeyboardIn{
+			Buttons: []keyboard.Button{
+				{
+					Value: s.languageService.GetText(lang, languageService.StartInterview),
+				},
+				{
+					Value: s.languageService.GetText(lang, languageService.ChooseLanguageSettings),
+				},
+			},
+		},
 	)
 }

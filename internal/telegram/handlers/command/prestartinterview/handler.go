@@ -7,7 +7,6 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
-	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -38,7 +37,7 @@ func NewHandler(
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := language.Language(request.User.Lang)
+	userLang := request.User.Lang
 
 	_, err := h.getInterviewUC.GetActiveInterview(ctx, request.User.OriginalID)
 	if errors.Is(err, interviewContracts.ErrEmptyActiveInterview) {

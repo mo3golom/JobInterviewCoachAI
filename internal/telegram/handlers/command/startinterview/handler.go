@@ -7,7 +7,6 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
-	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -52,7 +51,7 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 }
 
 func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender) error {
-	userLang := language.Language(request.User.Lang)
+	userLang := request.User.Lang
 
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Positions))
@@ -91,7 +90,7 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 }
 
 func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) error {
-	userLang := language.Language(request.User.Lang)
+	userLang := request.User.Lang
 	position := request.Data[0]
 
 	currentCommand := h.Command()
@@ -130,7 +129,7 @@ func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) er
 }
 
 func (h *Handler) startInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := language.Language(request.User.Lang)
+	userLang := request.User.Lang
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	position := interviewOptions.Positions[request.Data[0]]
 	level := interviewOptions.Levels[request.Data[1]]

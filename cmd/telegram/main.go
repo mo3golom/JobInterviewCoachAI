@@ -61,6 +61,10 @@ func main() {
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsBad)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsSkip)
+	tgPkg.RegisterCommandHandler(
+		telegramConfig.Handlers.ChangeUserLanguage,
+		telegramConfig.LanguageService.GetTextFromAllLanguages(languageService.ChooseLanguageSettings)...,
+	)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)

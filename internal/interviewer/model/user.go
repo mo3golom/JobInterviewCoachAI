@@ -1,10 +1,13 @@
 package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"job-interviewer/pkg/language"
+)
 
 type (
 	User struct {
 		ID   uuid.UUID
-		Lang string
+		Lang language.Language
 	}
 )
