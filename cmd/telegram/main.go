@@ -4,7 +4,7 @@ import (
 	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
-	gogpt "github.com/sashabaranov/go-gpt3"
+	openai "github.com/sashabaranov/go-openai"
 	"job-interviewer/cmd"
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
@@ -30,7 +30,7 @@ func main() {
 
 	log := cmd.MustInitLogger()
 
-	c := gogpt.NewClient(os.Getenv("GPT_API_KEY"))
+	c := openai.NewClient(os.Getenv("GPT_API_KEY"))
 	gptGateway := gpt.NewGateway(c)
 
 	tgPkgConfig := telegramPkg.NewConfiguration(log)

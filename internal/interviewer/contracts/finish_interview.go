@@ -6,5 +6,5 @@ import (
 )
 
 type FinishInterviewUseCase interface {
-	FinishInterview(ctx context.Context, userID uuid.UUID) error
+	FinishInterview(ctx context.Context, userID uuid.UUID) (string, error)
 }

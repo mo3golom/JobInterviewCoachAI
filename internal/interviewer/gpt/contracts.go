@@ -2,26 +2,30 @@ package gpt
 
 import (
 	"context"
-	gogpt "github.com/sashabaranov/go-gpt3"
+	"github.com/sashabaranov/go-openai"
 )
 
-type externalClient interface {
-	CreateCompletion(ctx context.Context, request gogpt.CompletionRequest) (response gogpt.CompletionResponse, err error)
-	CreateCompletionStream(ctx context.Context, request gogpt.CompletionRequest) (stream *gogpt.CompletionStream, err error)
-}
+type (
+	externalClient interface {
+		CreateChatCompletion(
+			ctx context.Context,
+			request openai.ChatCompletionRequest,
+		) (response openai.ChatCompletionResponse, err error)
+	}
 
-type AcceptAnswerIn struct {
-	Answer      string
-	Question    string
-	JobPosition string
-}
+	AcceptAnswerIn struct {
+		Answer   string
+		Question string
+	}
 
-type GetQuestionsListIn struct {
-	JobPosition   string
-	QuestionCount int64
-}
+	GetQuestionsListIn struct {
+		JobPosition   string
+		QuestionCount int64
+	}
 
-type Gateway interface {
-	AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error)
-	GetQuestionsList(ctx context.Context, in GetQuestionsListIn) ([]string, error)
-}
+	Gateway interface {
+		GetQuestion(ctx context.Context, jobPosition string) (string, error)
+		AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error)
+		SummarizeAnswersComments(ctx context.Context, answersComments []string) (string, error)
+	}
+)

@@ -25,7 +25,6 @@ As soon as you answer a question, I will provide you with constructive feedback 
 		languageService.StartInterviewSummary: `
 Let's start!
 Position: %s
-Level: %s
         `,
 		languageService.ProcessingAnswer:        "Processing your answer...",
 		languageService.NotFoundActiveInterview: "I can`t find an active interview T-T",

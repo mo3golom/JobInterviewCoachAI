@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	model2 "job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/pkg/transactional"
 )
 
@@ -25,7 +25,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 	return &DefaultStorage{db: db}
 }
 
-func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.Tx, interview *model2.Interview) error {
+func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
 	query := `
 		INSERT 
 		INTO interview (id, user_id, status, job_position, job_level, question_count) 
@@ -39,13 +39,13 @@ func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.T
 		Status:        string(interview.Status),
 		QuestionCount: interview.QuestionsCount,
 		JobPosition:   interview.JobInfo.Position,
-		JobLevel:      string(interview.JobInfo.Level),
+		JobLevel:      "unknown",
 	}
 	_, err := tx.NamedExecContext(ctx, query, in)
 	return err
 }
 
-func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.Tx, interview *model2.Interview) error {
+func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
 	query := `
 		UPDATE interview
 		SET  
@@ -62,7 +62,7 @@ func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.T
 	return err
 }
 
-func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx transactional.Tx, userID uuid.UUID) (*model2.Interview, error) {
+func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx transactional.Tx, userID uuid.UUID) (*model.Interview, error) {
 	query := `
 		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count
 		FROM interview as i
@@ -75,7 +75,7 @@ func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx tra
 		&results,
 		query,
 		userID,
-		model2.InterviewStatusStarted,
+		model.InterviewStatusStarted,
 	)
 	if err != nil {
 		return nil, err
@@ -87,14 +87,13 @@ func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx tra
 	return convertInterview(&results[0]), nil
 }
 
-func convertInterview(in *sqlxInterview) *model2.Interview {
-	return &model2.Interview{
+func convertInterview(in *sqlxInterview) *model.Interview {
+	return &model.Interview{
 		ID:     in.ID,
 		UserID: in.UserID,
-		Status: model2.InterviewStatus(in.Status),
-		JobInfo: model2.JobInfo{
+		Status: model.InterviewStatus(in.Status),
+		JobInfo: model.JobInfo{
 			Position: in.JobPosition,
-			Level:    model2.JobLevel(in.JobLevel),
 		},
 		QuestionsCount: in.QuestionCount,
 	}

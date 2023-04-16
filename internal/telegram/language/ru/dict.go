@@ -25,7 +25,6 @@ func (d Dict) GetTexts() map[language.TextKey]string {
 		languageService.StartInterviewSummary: `
 Начинаем интервью!
 Позиция: %s
-Уровень: %s
         `,
 		languageService.LoadQuestions:          "🔄 Нейросеть подготавливает вопросы, одну минутку...",
 		languageService.FinishInterview:        "️⏏️️ Завершить",

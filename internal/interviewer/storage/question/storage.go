@@ -4,24 +4,24 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	model2 "job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/pkg/transactional"
 )
 
 type sqlxQuestion struct {
-	ID          uuid.UUID       `db:"id"`
-	Text        string          `db:"text"`
-	JobPosition string          `db:"job_position"`
-	JobLevel    model2.JobLevel `db:"job_level"`
-	IQID        int64           `db:"iq_id"`
+	ID          uuid.UUID `db:"id"`
+	Text        string    `db:"text"`
+	JobPosition string    `db:"job_position"`
+	JobLevel    string    `db:"job_level"`
+	IQID        int64     `db:"iq_id"`
 }
 
 type sqlxInterviewQuestion struct {
-	InterviewID uuid.UUID                      `db:"interview_id"`
-	QuestionID  uuid.UUID                      `db:"question_id"`
-	Answer      *string                        `db:"answer"`
-	GptComment  *string                        `db:"gpt_comment"`
-	Status      model2.InterviewQuestionStatus `db:"status"`
+	InterviewID uuid.UUID                     `db:"interview_id"`
+	QuestionID  uuid.UUID                     `db:"question_id"`
+	Answer      *string                       `db:"answer"`
+	GptComment  *string                       `db:"gpt_comment"`
+	Status      model.InterviewQuestionStatus `db:"status"`
 }
 
 type DefaultStorage struct {
@@ -32,7 +32,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 	return &DefaultStorage{db: db}
 }
 
-func (s *DefaultStorage) CreateQuestions(ctx context.Context, tx transactional.Tx, in []model2.Question) error {
+func (s *DefaultStorage) CreateQuestion(ctx context.Context, tx transactional.Tx, in *model.Question) error {
 	query := `
 		INSERT 
 		INTO question (id, text, job_position, job_level) 
@@ -40,24 +40,17 @@ func (s *DefaultStorage) CreateQuestions(ctx context.Context, tx transactional.T
 		ON CONFLICT DO NOTHING 
     `
 
-	questions := make([]sqlxQuestion, 0, len(in))
-	for _, q := range in {
-		questions = append(
-			questions,
-			sqlxQuestion{
-				ID:          q.ID,
-				Text:        q.Text,
-				JobPosition: q.JobInfo.Position,
-				JobLevel:    q.JobInfo.Level,
-			},
-		)
+	questions := sqlxQuestion{
+		ID:          in.ID,
+		Text:        in.Text,
+		JobPosition: in.JobInfo.Position,
+		JobLevel:    "unknown",
 	}
-
 	_, err := tx.NamedExecContext(ctx, query, questions)
 	return err
 }
 
-func (s *DefaultStorage) AttachQuestionsToInterview(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, questions []model2.Question) error {
+func (s *DefaultStorage) AttachQuestionToInterview(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, question *model.Question) error {
 	query := `
 		INSERT 
 		INTO interview_question (interview_id, question_id, status) 
@@ -65,60 +58,16 @@ func (s *DefaultStorage) AttachQuestionsToInterview(ctx context.Context, tx tran
 		ON CONFLICT DO NOTHING 
     `
 
-	in := make([]sqlxInterviewQuestion, 0, len(questions))
-	for _, q := range questions {
-		in = append(
-			in,
-			sqlxInterviewQuestion{
-				InterviewID: interviewID,
-				QuestionID:  q.ID,
-				Status:      model2.InterviewQuestionStatusCreated,
-			},
-		)
+	in := sqlxInterviewQuestion{
+		InterviewID: interviewID,
+		QuestionID:  question.ID,
+		Status:      model.InterviewQuestionStatusActive,
 	}
-
 	_, err := tx.NamedExecContext(ctx, query, in)
 	return err
 }
 
-func (s *DefaultStorage) FindNextQuestion(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID) (*model2.Question, error) {
-	query := `
-		SELECT q.id, q.text, q.job_position, q.job_level, iq.id as iq_id
-		FROM question as q
-		JOIN interview_question as iq on q.id = iq.question_id
-		WHERE iq.interview_id = $1 AND (iq.status = $2 or iq.status = $3)
-		LIMIT 1
-    `
-
-	var results []sqlxQuestion
-	err := s.db.SelectContext(
-		ctx,
-		&results,
-		query,
-		interviewID,
-		model2.InterviewQuestionStatusCreated,
-		model2.InterviewQuestionStatusActive,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if len(results) == 0 {
-		return nil, ErrEmptyQuestionResult
-	}
-
-	query = `
-        UPDATE interview_question SET status=$1, updated_at=now()
-		WHERE id=$2
-    `
-	_, err = tx.ExecContext(ctx, query, model2.InterviewQuestionStatusActive, results[0].IQID)
-	if err != nil {
-		return nil, err
-	}
-
-	return convertQuestion(&results[0]), nil
-}
-
-func (s *DefaultStorage) FindActiveQuestionByInterviewID(ctx context.Context, interviewID uuid.UUID) (*model2.Question, error) {
+func (s *DefaultStorage) FindActiveQuestionByInterviewID(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID) (*model.Question, error) {
 	query := `
 		SELECT q.id, q.text, q.job_position, q.job_level, iq.id as iq_id
 		FROM question as q
@@ -128,12 +77,12 @@ func (s *DefaultStorage) FindActiveQuestionByInterviewID(ctx context.Context, in
     `
 
 	var results []sqlxQuestion
-	err := s.db.SelectContext(
+	err := tx.SelectContext(
 		ctx,
 		&results,
 		query,
 		interviewID,
-		model2.InterviewQuestionStatusActive,
+		model.InterviewQuestionStatusActive,
 	)
 	if err != nil {
 		return nil, err
@@ -143,6 +92,28 @@ func (s *DefaultStorage) FindActiveQuestionByInterviewID(ctx context.Context, in
 	}
 
 	return convertQuestion(&results[0]), nil
+}
+
+func (s *DefaultStorage) FindAnswersCommentsByInterviewID(ctx context.Context, interviewID uuid.UUID) ([]string, error) {
+	query := `
+		SELECT iq.gpt_comment
+		FROM  interview_question as iq
+		WHERE iq.interview_id = $1 and (gpt_comment is not null or gpt_comment != '')
+		LIMIT 1
+    `
+
+	var results []string
+	err := s.db.SelectContext(
+		ctx,
+		&results,
+		query,
+		interviewID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (s *DefaultStorage) SetQuestionAnswered(ctx context.Context, tx transactional.Tx, in SetQuestionAnsweredIn) error {
@@ -162,7 +133,7 @@ func (s *DefaultStorage) SetQuestionAnswered(ctx context.Context, tx transaction
 			QuestionID:  in.QuestionID,
 			Answer:      &answer,
 			GptComment:  &gptComment,
-			Status:      model2.InterviewQuestionStatusAnswered,
+			Status:      model.InterviewQuestionStatusAnswered,
 		},
 	)
 	return err
@@ -185,13 +156,12 @@ func (s *DefaultStorage) UpdateInterviewQuestionStatus(ctx context.Context, tx t
 	return err
 }
 
-func convertQuestion(in *sqlxQuestion) *model2.Question {
-	return &model2.Question{
+func convertQuestion(in *sqlxQuestion) *model.Question {
+	return &model.Question{
 		ID:   in.ID,
 		Text: in.Text,
-		JobInfo: model2.JobInfo{
+		JobInfo: model.JobInfo{
 			Position: in.JobPosition,
-			Level:    model2.JobLevel(in.JobLevel),
 		},
 	}
 }

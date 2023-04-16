@@ -23,7 +23,7 @@ func (u *UseCase) GetNextQuestion(ctx context.Context, userID uuid.UUID) (*model
 		return nil, err
 	}
 
-	nextQuestion, err := u.questionService.FindNextQuestion(ctx, activeInterview.ID)
+	nextQuestion, err := u.questionService.GetNextQuestion(ctx, activeInterview)
 	if err != nil {
 		return nil, err
 	}

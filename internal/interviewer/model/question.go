@@ -3,7 +3,6 @@ package model
 import "github.com/google/uuid"
 
 const (
-	InterviewQuestionStatusCreated  InterviewQuestionStatus = "created"
 	InterviewQuestionStatusAnswered InterviewQuestionStatus = "answered"
 	InterviewQuestionStatusActive   InterviewQuestionStatus = "active"
 	InterviewQuestionStatusCanceled InterviewQuestionStatus = "canceled"

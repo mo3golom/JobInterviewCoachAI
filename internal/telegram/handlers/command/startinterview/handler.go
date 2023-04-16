@@ -42,11 +42,6 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		return h.choosePosition(request, sender)
 	}
 
-	if len(request.Data) == 1 {
-		return h.chooseLevel(request, sender)
-
-	}
-
 	return h.startInterview(ctx, request, sender)
 }
 
@@ -89,50 +84,10 @@ func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender)
 	return err
 }
 
-func (h *Handler) chooseLevel(request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
-	position := request.Data[0]
-
-	currentCommand := h.Command()
-	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
-	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Levels))
-	for key, level := range interviewOptions.Levels {
-		buttons = append(
-			buttons,
-			keyboard.InlineButton{
-				Value: levelToString[level],
-				Data:  []string{position, key},
-				Type:  keyboard.ButtonData,
-			},
-		)
-	}
-
-	sort.Slice(buttons, func(i, j int) bool {
-		return buttons[i].Value < buttons[j].Value
-	})
-
-	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardGrid(
-		keyboard.BuildInlineKeyboardIn{
-			Command: &currentCommand,
-			Buttons: buttons,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	return sender.Update(
-		request.MessageID,
-		model.NewResponse(request.Chat.ID).
-			SetText(h.languageService.GetText(userLang, languageService.ChooseLevel)).
-			SetInlineKeyboardMarkup(inlineKeyboard),
-	)
-}
-
 func (h *Handler) startInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
 	userLang := request.User.Lang
 	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
 	position := interviewOptions.Positions[request.Data[0]]
-	level := interviewOptions.Levels[request.Data[1]]
 
 	err := sender.Update(
 		request.MessageID,
@@ -141,7 +96,6 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 				fmt.Sprintf(
 					h.languageService.GetText(userLang, languageService.StartInterviewSummary),
 					position,
-					levelToString[level],
 				),
 			).
 			SetInlineKeyboardMarkup(nil),
@@ -162,7 +116,6 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 		interviewContracts.StartInterviewIn{
 			UserID:         request.User.OriginalID,
 			JobPosition:    position,
-			JobLevel:       level,
 			QuestionsCount: 10, //TODO: добавить выбор количества вопросов
 		},
 	)

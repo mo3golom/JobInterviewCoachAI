@@ -27,12 +27,12 @@ type (
 	}
 
 	Storage interface {
-		CreateQuestions(ctx context.Context, tx transactional.Tx, in []model.Question) error
-		AttachQuestionsToInterview(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, questions []model.Question) error
+		CreateQuestion(ctx context.Context, tx transactional.Tx, in *model.Question) error
+		AttachQuestionToInterview(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, question *model.Question) error
 		SetQuestionAnswered(ctx context.Context, tx transactional.Tx, in SetQuestionAnsweredIn) error
 		UpdateInterviewQuestionStatus(ctx context.Context, tx transactional.Tx, in UpdateInterviewQuestionStatusIn) error
 
-		FindNextQuestion(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID) (*model.Question, error)
-		FindActiveQuestionByInterviewID(ctx context.Context, interviewID uuid.UUID) (*model.Question, error)
+		FindActiveQuestionByInterviewID(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID) (*model.Question, error)
+		FindAnswersCommentsByInterviewID(ctx context.Context, interviewID uuid.UUID) ([]string, error)
 	}
 )

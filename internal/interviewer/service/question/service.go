@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/gpt"
-	model2 "job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/interviewer/storage/question"
 	"job-interviewer/pkg/transactional"
 )
@@ -25,66 +24,50 @@ func NewQuestionService(g gpt.Gateway, s question.Storage, tr transactional.Temp
 	}
 }
 
-func (s *DefaultService) CreateQuestionsForInterview(ctx context.Context, interview *model2.Interview) error {
-	result, err := s.gpt.GetQuestionsList(
-		ctx,
-		gpt.GetQuestionsListIn{
-			JobPosition:   interview.JobInfo.Position,
-			QuestionCount: interview.QuestionsCount,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	questions := convertQuestions(result, interview.JobInfo)
-	return s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		err := s.storage.CreateQuestions(
-			ctx,
-			tx,
-			questions,
-		)
-		if err != nil {
-			return err
-		}
-
-		return s.storage.AttachQuestionsToInterview(ctx, tx, interview.ID, questions)
-	})
-}
-
-func (s *DefaultService) FindNextQuestion(ctx context.Context, interviewID uuid.UUID) (*model2.Question, error) {
-	var result *model2.Question
+func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.Interview) (*model.Question, error) {
+	var nextQuestion *model.Question
 	err := s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		temp, err := s.storage.FindNextQuestion(ctx, tx, interviewID)
+		tempQuestion, err := s.storage.FindActiveQuestionByInterviewID(ctx, tx, interview.ID)
 		if err != nil {
 			return err
 		}
 
-		result = temp
+		nextQuestion = tempQuestion
 		return nil
 	})
-	if errors.Is(err, question.ErrEmptyQuestionResult) {
-		return nil, contracts.ErrNextQuestionEmpty
+	if err != nil && !errors.Is(err, question.ErrEmptyQuestionResult) {
+		return nil, err
 	}
+
+	if nextQuestion != nil {
+		return nextQuestion, nil
+	}
+
+	result, err := s.gpt.GetQuestion(ctx, interview.JobInfo.Position)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
-}
-
-func convertQuestions(in []string, jobInfo model2.JobInfo) []model2.Question {
-	result := make([]model2.Question, 0, len(in))
-	for _, t := range in {
-		result = append(
-			result,
-			model2.Question{
-				ID:      uuid.New(),
-				Text:    t,
-				JobInfo: jobInfo,
-			},
+	nextQuestion = &model.Question{
+		ID:      uuid.New(),
+		Text:    result,
+		JobInfo: interview.JobInfo,
+	}
+	err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+		err := s.storage.CreateQuestion(
+			ctx,
+			tx,
+			nextQuestion,
 		)
+		if err != nil {
+			return err
+		}
+
+		return s.storage.AttachQuestionToInterview(ctx, tx, interview.ID, nextQuestion)
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return result
+	return nextQuestion, nil
 }

@@ -3,7 +3,7 @@ package startinterview
 import (
 	"context"
 	"errors"
-	contracts2 "job-interviewer/internal/interviewer/contracts"
+	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/service/interview"
 	"job-interviewer/internal/interviewer/service/question"
 )
@@ -17,12 +17,12 @@ func NewUseCase(i interview.Service, q question.Service) *UseCase {
 	return &UseCase{interviewService: i, questionService: q}
 }
 
-func (u *UseCase) StartInterview(ctx context.Context, in contracts2.StartInterviewIn) error {
+func (u *UseCase) StartInterview(ctx context.Context, in contracts.StartInterviewIn) error {
 	activeInterview, err := u.interviewService.FindActiveInterview(ctx, in.UserID)
-	if err != nil && !errors.Is(err, contracts2.ErrEmptyActiveInterview) {
+	if err != nil && !errors.Is(err, contracts.ErrEmptyActiveInterview) {
 		return err
 	}
-	err = u.interviewService.FinishInterview(ctx, activeInterview)
+	err = u.interviewService.FinishInterviewWithoutSummary(ctx, activeInterview)
 	if err != nil {
 		return err
 	}
@@ -32,15 +32,9 @@ func (u *UseCase) StartInterview(ctx context.Context, in contracts2.StartIntervi
 		interview.CreateInterviewIn{
 			UserID:         in.UserID,
 			JobPosition:    in.JobPosition,
-			JobLevel:       in.JobLevel,
 			QuestionsCount: in.QuestionsCount,
 		},
 	)
-	if err != nil {
-		return err
-	}
-
-	err = u.questionService.CreateQuestionsForInterview(ctx, newInterview)
 	if err != nil {
 		return err
 	}

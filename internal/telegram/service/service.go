@@ -52,9 +52,19 @@ func (s *DefaultService) Start(request *model.Request, sender telegram.Sender) e
 }
 
 func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
+	summary, err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
 	if err != nil {
 		return err
+	}
+
+	outMessage := s.languageService.GetText(languageService.English, languageService.FinishInterviewSummary)
+	if summary != "" {
+		outMessage = fmt.Sprintf(
+			`%s
+                    %s`,
+			outMessage,
+			summary,
+		)
 	}
 
 	_, err = sender.Send(
@@ -63,7 +73,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 				fmt.Sprintf(
 					"%s %s",
 					handlers.RobotPrefix,
-					s.languageService.GetText(languageService.English, languageService.FinishInterviewSummary),
+					outMessage,
 				),
 			),
 	)

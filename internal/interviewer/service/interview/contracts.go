@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	model2 "job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/model"
 )
 
 var (
@@ -15,7 +15,6 @@ type (
 	CreateInterviewIn struct {
 		UserID         uuid.UUID
 		JobPosition    string
-		JobLevel       model2.JobLevel
 		QuestionsCount int64
 	}
 
@@ -25,10 +24,11 @@ type (
 	}
 
 	Service interface {
-		CreateInterview(ctx context.Context, in CreateInterviewIn) (*model2.Interview, error)
-		StartInterview(ctx context.Context, interview *model2.Interview) error
-		FinishInterview(ctx context.Context, interview *model2.Interview) error
-		FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model2.Interview, error)
+		CreateInterview(ctx context.Context, in CreateInterviewIn) (*model.Interview, error)
+		StartInterview(ctx context.Context, interview *model.Interview) error
+		FinishInterview(ctx context.Context, interview *model.Interview) (string, error)
+		FinishInterviewWithoutSummary(ctx context.Context, interview *model.Interview) error
+		FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error)
 		AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error)
 	}
 )
