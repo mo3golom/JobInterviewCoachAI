@@ -7,8 +7,8 @@ import (
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
 	"job-interviewer/internal/telegram/handlers/command"
-	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
@@ -16,42 +16,36 @@ import (
 
 type Handler struct {
 	acceptAnswerUC  interviewerContracts.AcceptAnswerUseCase
-	keyboardService keyboard.Service
 	service         service.Service
-	languageService languageService.Service
+	languageStorage language.Storage
 }
 
 func NewHandler(
 	auc interviewerContracts.AcceptAnswerUseCase,
 	s service.Service,
-	ks keyboard.Service,
-	l languageService.Service,
 ) *Handler {
 	return &Handler{
 		acceptAnswerUC:  auc,
 		service:         s,
-		keyboardService: ks,
-		languageService: l,
+		languageStorage: configLanguage(),
 	}
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
-
 	if request.Message == nil {
 		return nil
 	}
 
 	answerMessageID, err := sender.Send(
-		model.NewResponse(request.Chat.ID).SetText(
+		model.NewResponse().SetText(
 			fmt.Sprintf(
 				"%s %s",
 				handlers.RobotPrefix,
-				h.languageService.GetText(languageService.English, languageService.ProcessingAnswer),
+				h.languageStorage.GetText(language.English, textKeyProcessingAnswer),
 			),
 		),
 	)
-	response := model.NewResponse(request.Chat.ID)
+	response := model.NewResponse()
 
 	out, err := h.acceptAnswerUC.AcceptAnswer(
 		ctx,
@@ -60,26 +54,18 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 			UserID: request.User.OriginalID,
 		},
 	)
-	if errors.Is(err, interviewerContracts.ErrNextQuestionEmpty) {
-		return h.service.FinishInterview(ctx, request, sender)
-	}
 	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
-		return h.service.Start(request, sender)
+		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardInlineList(keyboard.BuildInlineKeyboardIn{
+	inlineKeyboard, err := keyboard.BuildInlineKeyboardInlineList(keyboard.BuildInlineKeyboardIn{
 		Buttons: []keyboard.InlineButton{
 			{
-				Value: h.languageService.GetText(userLang, languageService.FinishInterview),
+				Value: h.languageStorage.GetText(language.Russian, textKeyFinishInterview),
 				Data:  []string{command.FinishInterviewCommand},
-				Type:  keyboard.ButtonData,
-			},
-			{
-				Value: h.languageService.GetText(userLang, languageService.ContinueInterview),
-				Data:  []string{command.GetNextQuestionCommand},
 				Type:  keyboard.ButtonData,
 			},
 		},

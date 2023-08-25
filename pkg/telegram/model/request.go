@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+var (
+	lang = map[string]language.Language{
+		"ru": language.Russian,
+		"en": language.English,
+	}
+)
+
 type (
 	Request struct {
 		UpdateID  int64
@@ -44,11 +51,11 @@ func NewRequest(in tgbotapi.Update) Request {
 		},
 		User: &User{
 			ID:   user.ID,
-			Lang: language.Language(user.LanguageCode),
+			Lang: lang[user.LanguageCode],
 		},
 	}
 
-	if in.Message != nil && len(in.Message.Text) <= 150 {
+	if in.Message != nil {
 		request.MessageID = int64(in.Message.MessageID)
 		request.Message = &Message{
 			Text: in.Message.Text,

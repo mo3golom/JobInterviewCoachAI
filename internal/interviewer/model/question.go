@@ -18,4 +18,9 @@ type (
 		Text    string
 		JobInfo JobInfo
 	}
+
+	InterviewQuestion struct {
+		Text   string
+		Answer string
+	}
 )

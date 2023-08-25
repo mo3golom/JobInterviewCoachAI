@@ -11,10 +11,7 @@ const (
 	maxCountButtonsWithoutChunks = 3
 )
 
-type DefaultService struct {
-}
-
-func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
+func BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
 	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, maxCountButtonsWithoutChunks)
 	chunkSize := maxCountButtonsWithoutChunks
 	for {
@@ -39,7 +36,7 @@ func (s *DefaultService) BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgb
 	}, nil
 }
 
-func (s *DefaultService) BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
+func BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
 	keyboard := make([][]tgbotapi.InlineKeyboardButton, 0, len(in.Buttons))
 	for _, btn := range in.Buttons {
 		row, err := buildInlineRow(in.Command, []InlineButton{btn})
@@ -55,7 +52,7 @@ func (s *DefaultService) BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgb
 	}, nil
 }
 
-func (s *DefaultService) BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
+func BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error) {
 	row, err := buildInlineRow(in.Command, in.Buttons)
 	if err != nil {
 		return nil, err
@@ -66,7 +63,7 @@ func (s *DefaultService) BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn)
 	}, nil
 }
 
-func (s *DefaultService) BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
+func BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
 	keyboard := make([][]tgbotapi.KeyboardButton, 0, maxCountButtonsWithoutChunks)
 	chunkSize := maxCountButtonsWithoutChunks
 	for {

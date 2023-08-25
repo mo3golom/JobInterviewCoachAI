@@ -27,11 +27,11 @@ func (g *DefaultGateway) RegisterMiddleware(middleware Middleware) {
 	g.middlewares = copyMiddleware
 }
 
-func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler, aliases ...string) {
+func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler) {
 	copyCommandHandlers := helper.CopyMap[string, Handler](g.commandHandlers)
 
 	copyCommandHandlers[handler.Command()] = handler
-	for _, alias := range aliases {
+	for _, alias := range handler.Aliases() {
 		copyCommandHandlers[alias] = handler
 	}
 	g.commandHandlers = copyCommandHandlers
@@ -53,21 +53,32 @@ func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) 
 	for update := range updates {
 		go func(in tgbotapi.Update) {
 			request := model.NewRequest(in)
+
 			err := g.handleUpdate(ctx, &request, senderImpl)
 			if err != nil {
 				g.logHandleUpdateError(&request, err)
 
 				_, _ = senderImpl.Send(
 					model.
-						NewResponse(request.Chat.ID).
+						NewResponse().
+						SetChatID(request.Chat.ID).
 						SetText("Something went wrong :("),
 				)
 			}
 		}(update)
 	}
+
 }
 
-func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Request, sender Sender) error {
+func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Request, senderImpl *sender) error {
+	senderAdapterImpl := senderAdapter{
+		senderImpl,
+		request.Chat.ID,
+	}
+	defer (func() {
+		senderAdapterImpl = senderAdapter{}
+	})()
+
 	// MIDDLEWARE
 	for _, middleware := range g.middlewares {
 		err := middleware.Handle(ctx, request)
@@ -79,12 +90,12 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 	// COMMAND
 	command, ok := g.determineCommand(request)
 	if ok {
-		return command.Handle(ctx, request, sender)
+		return command.Handle(ctx, request, senderAdapterImpl)
 	}
 
 	// MESSAGE HANDLER
 	for _, handler := range g.messageHandlers {
-		err := handler.Handle(ctx, request, sender)
+		err := handler.Handle(ctx, request, senderAdapterImpl)
 		if err == nil {
 			continue
 		}
@@ -93,9 +104,9 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 	}
 
 	if len(g.messageHandlers) == 0 {
-		_, err := sender.Send(
+		_, err := senderAdapterImpl.Send(
 			model.
-				NewResponse(request.Chat.ID).
+				NewResponse().
 				SetText("Unknown command"),
 		)
 		return err

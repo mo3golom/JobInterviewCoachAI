@@ -29,8 +29,6 @@ func (m *Middleware) Handle(ctx context.Context, request *tgModel.Request) error
 	}
 
 	request.User.OriginalID = user.ID
-	if user.Lang != "" {
-		request.User.Lang = user.Lang
-	}
+	request.User.Lang = user.Lang
 	return nil
 }

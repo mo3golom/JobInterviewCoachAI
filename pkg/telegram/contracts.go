@@ -24,11 +24,12 @@ type (
 	CommandHandler interface {
 		Handler
 		Command() string
+		Aliases() []string
 	}
 
 	Gateway interface {
 		RegisterMiddleware(middleware Middleware)
-		RegisterCommandHandler(handler CommandHandler, aliases ...string)
+		RegisterCommandHandler(handler CommandHandler)
 		RegisterHandler(handler Handler)
 		Run(ctx context.Context, config tgbotapi.UpdateConfig)
 	}

@@ -1,7 +1,5 @@
 package keyboard
 
-import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-
 const (
 	ButtonData ButtonType = iota
 	ButtonUrl
@@ -28,12 +26,5 @@ type (
 
 	BuildKeyboardIn struct {
 		Buttons []Button
-	}
-
-	Service interface {
-		BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup
-		BuildInlineKeyboardGrid(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
-		BuildInlineKeyboardList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
-		BuildInlineKeyboardInlineList(in BuildInlineKeyboardIn) (*tgbotapi.InlineKeyboardMarkup, error)
 	}
 )

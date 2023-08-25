@@ -15,6 +15,7 @@ type sqlxInterview struct {
 	QuestionCount int64     `db:"question_count"`
 	JobPosition   string    `db:"job_position"`
 	JobLevel      string    `db:"job_level"`
+	State         string    `db:"state"`
 }
 
 type DefaultStorage struct {
@@ -62,9 +63,26 @@ func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.T
 	return err
 }
 
+func (s *DefaultStorage) UpdateInterviewState(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, state model.InterviewState) error {
+	query := `
+		UPDATE interview
+		SET  
+		    state=:state,
+		    updated_at=now()
+        WHERE id=:id 
+    `
+
+	in := sqlxInterview{
+		ID:    interviewID,
+		State: string(state),
+	}
+	_, err := tx.NamedExecContext(ctx, query, in)
+	return err
+}
+
 func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx transactional.Tx, userID uuid.UUID) (*model.Interview, error) {
 	query := `
-		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count
+		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count, i.state
 		FROM interview as i
 		WHERE i.user_id = $1 and i.status = $2
     `
@@ -96,5 +114,6 @@ func convertInterview(in *sqlxInterview) *model.Interview {
 			Position: in.JobPosition,
 		},
 		QuestionsCount: in.QuestionCount,
+		State:          model.InterviewState(in.State),
 	}
 }

@@ -1,7 +1,12 @@
 package language
 
-type (
-	Language string
+const (
+	Russian Language = iota
+	English
+)
 
-	TextKey string
+type (
+	Language int64
+
+	TextKey int64
 )

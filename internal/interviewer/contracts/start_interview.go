@@ -5,12 +5,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type StartInterviewIn struct {
-	UserID         uuid.UUID
-	JobPosition    string
-	QuestionsCount int64
-}
+type (
+	StartInterviewIn struct {
+		UserID    uuid.UUID
+		Questions StartInterviewQuestionsIn
+	}
 
-type StartInterviewUseCase interface {
-	StartInterview(ctx context.Context, in StartInterviewIn) error
-}
+	StartInterviewQuestionsIn struct {
+		JobPosition string
+	}
+
+	StartInterviewUseCase interface {
+		StartInterview(ctx context.Context, in StartInterviewIn) error
+	}
+)

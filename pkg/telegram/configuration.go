@@ -3,13 +3,11 @@ package telegram
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/logger"
-	"job-interviewer/pkg/telegram/service/keyboard"
 	"os"
 )
 
 type Configuration struct {
-	KeyboardService keyboard.Service
-	Gateway         Gateway
+	Gateway Gateway
 }
 
 func NewConfiguration(log logger.Logger) *Configuration {
@@ -23,7 +21,6 @@ func NewConfiguration(log logger.Logger) *Configuration {
 	}
 
 	return &Configuration{
-		KeyboardService: &keyboard.DefaultService{},
-		Gateway:         NewGateway(bot, log),
+		Gateway: NewGateway(bot, log),
 	}
 }

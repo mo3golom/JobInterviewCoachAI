@@ -27,3 +27,7 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 func (h *Handler) Command() string {
 	return command.FinishInterviewCommand
 }
+
+func (h *Handler) Aliases() []string {
+	return nil
+}

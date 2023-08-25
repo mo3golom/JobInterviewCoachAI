@@ -8,27 +8,27 @@ import (
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/interviewer/storage/interview"
-	"job-interviewer/internal/interviewer/storage/question"
+	"job-interviewer/internal/interviewer/storage/messages"
 	"job-interviewer/pkg/transactional"
 )
 
 type DefaultService struct {
 	gpt                   gpt.Gateway
 	interviewStorage      interview.Storage
-	questionStorage       question.Storage
+	messagesStorage       messages.Storage
 	transactionalTemplate transactional.Template
 }
 
 func NewInterviewService(
 	g gpt.Gateway,
 	is interview.Storage,
-	qs question.Storage,
+	messagesStorage messages.Storage,
 	tr transactional.Template,
 ) *DefaultService {
 	return &DefaultService{
 		gpt:                   g,
 		interviewStorage:      is,
-		questionStorage:       qs,
+		messagesStorage:       messagesStorage,
 		transactionalTemplate: tr,
 	}
 }
@@ -84,43 +84,31 @@ func (s *DefaultService) FinishInterviewWithoutSummary(ctx context.Context, inte
 
 	interview.Status = model.InterviewStatusFinished
 	return s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		err := s.interviewStorage.UpdateInterview(ctx, tx, interview)
-		if err != nil {
-			return err
-		}
-
-		return s.questionStorage.UpdateInterviewQuestionStatus(
-			ctx,
-			tx,
-			question.UpdateInterviewQuestionStatusIn{
-				InterviewID: interview.ID,
-				Current:     model.InterviewQuestionStatusActive,
-				Target:      model.InterviewQuestionStatusCanceled,
-			},
-		)
+		return s.interviewStorage.UpdateInterview(ctx, tx, interview)
 	})
 }
 
 func (s *DefaultService) FinishInterview(ctx context.Context, interview *model.Interview) (string, error) {
-	err := s.FinishInterviewWithoutSummary(ctx, interview)
+	history, err := s.messagesStorage.GetMessagesByInterviewID(ctx, interview.ID)
 	if err != nil {
 		return "", err
 	}
 
-	answersComments, err := s.questionStorage.FindAnswersCommentsByInterviewID(ctx, interview.ID)
-	if err != nil {
-		return "", err
-	}
-	if len(answersComments) == 0 {
-		return "", nil
-	}
-
-	summary, err := s.gpt.SummarizeAnswersComments(ctx, answersComments)
+	result, err := s.gpt.SummarizeAnswersComments(
+		ctx,
+		history,
+		interview.JobInfo.Position,
+	)
 	if err != nil {
 		return "", err
 	}
 
-	return summary, nil
+	err = s.FinishInterviewWithoutSummary(ctx, interview)
+	if err != nil {
+		return "", err
+	}
+
+	return result.Content, nil
 }
 
 func (s *DefaultService) FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error) {
@@ -144,54 +132,94 @@ func (s *DefaultService) FindActiveInterview(ctx context.Context, userID uuid.UU
 	return existingInterview, nil
 }
 
+func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.Interview) (*model.Question, error) {
+	history, err := s.messagesStorage.GetMessagesByInterviewID(ctx, interview.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(history) == 0 {
+		result, err := s.gpt.StartDialogue(ctx, interview.JobInfo.Position)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+			return s.messagesStorage.CreateMessage(
+				ctx,
+				tx,
+				interview.ID,
+				&model.Message{
+					Role:    model.RoleAssistant,
+					Content: result.Content,
+				},
+			)
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return &model.Question{
+			Text: result.Content,
+		}, nil
+	}
+
+	if lastMessage := history[len(history)-1]; lastMessage.Role == model.RoleAssistant {
+		return &model.Question{
+			Text: lastMessage.Content,
+		}, nil
+	}
+
+	result, err := s.gpt.ContinueDialogue(ctx, history, interview.JobInfo.Position)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Question{
+		Text: result.Content,
+	}, nil
+}
+
 func (s *DefaultService) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error) {
-	var currentQuestion *model.Question
-	var activeInterviewID uuid.UUID
-	err := s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		activeInterview, err := s.interviewStorage.FindActiveInterviewByUserID(ctx, tx, in.UserID)
-		if errors.Is(err, interview.ErrEmptyInterviewResult) {
-			return contracts.ErrEmptyActiveInterview
-		}
-		if err != nil {
-			return err
-		}
-
-		tempQuestion, err := s.questionStorage.FindActiveQuestionByInterviewID(ctx, tx, activeInterview.ID)
-		if errors.Is(err, question.ErrEmptyQuestionResult) {
-			return contracts.ErrInterviewQuestionsIsEmpty
-		}
-		if err != nil {
-			return err
-		}
-		currentQuestion = tempQuestion
-		activeInterviewID = activeInterview.ID
-
-		return nil
-	})
+	history, err := s.messagesStorage.GetMessagesByInterviewID(ctx, in.Interview.ID)
 	if err != nil {
 		return "", err
 	}
 
-	out, err := s.gpt.AcceptAnswer(
-		ctx,
-		gpt.AcceptAnswerIn{
-			Answer:   in.Answer,
-			Question: currentQuestion.Text,
+	history = append(
+		history,
+		model.Message{
+			Role:    model.RoleUser,
+			Content: in.Answer,
 		},
 	)
+
+	result, err := s.gpt.ContinueDialogue(ctx, history, in.Interview.JobInfo.Position)
 	if err != nil {
 		return "", err
 	}
 
 	err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		return s.questionStorage.SetQuestionAnswered(
+		err := s.messagesStorage.CreateMessage(
 			ctx,
 			tx,
-			question.SetQuestionAnsweredIn{
-				InterviewID: activeInterviewID,
-				QuestionID:  currentQuestion.ID,
-				Answer:      in.Answer,
-				GptComment:  out,
+			in.Interview.ID,
+			&model.Message{
+				Role:    model.RoleUser,
+				Content: in.Answer,
+			},
+		)
+		if err != nil {
+			return err
+		}
+
+		return s.messagesStorage.CreateMessage(
+			ctx,
+			tx,
+			in.Interview.ID,
+			&model.Message{
+				Role:    model.RoleAssistant,
+				Content: result.Content,
 			},
 		)
 	})
@@ -199,5 +227,16 @@ func (s *DefaultService) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (s
 		return "", err
 	}
 
-	return out, nil
+	return result.Content, nil
+}
+
+func (s *DefaultService) UpdateInterviewState(ctx context.Context, interviewID uuid.UUID, state model.InterviewState) error {
+	return s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+		return s.interviewStorage.UpdateInterviewState(
+			ctx,
+			tx,
+			interviewID,
+			state,
+		)
+	})
 }

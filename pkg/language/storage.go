@@ -1,13 +1,30 @@
 package language
 
-type DefaultStorage struct {
+type DefaultWordStorage struct {
 	texts map[TextKey]string
 }
 
-func NewStorage(texts map[TextKey]string) DefaultStorage {
-	return DefaultStorage{texts: texts}
+func (s *DefaultWordStorage) GetText(key TextKey) string {
+	return s.texts[key]
 }
 
-func (s DefaultStorage) GetText(key TextKey) string {
-	return s.texts[key]
+func NewWordStorage(texts map[TextKey]string) *DefaultWordStorage {
+	return &DefaultWordStorage{texts: texts}
+}
+
+type DefaultLangStorage struct {
+	languages map[Language]WordStorage
+}
+
+func NewLangStorage(languages map[Language]WordStorage) *DefaultLangStorage {
+	return &DefaultLangStorage{languages: languages}
+}
+
+func (d *DefaultLangStorage) GetText(lang Language, key TextKey) string {
+	storage, ok := d.languages[lang]
+	if !ok {
+		return ""
+	}
+
+	return storage.GetText(key)
 }

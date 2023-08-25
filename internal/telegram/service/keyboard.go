@@ -12,10 +12,5 @@ var (
 			Data:  []string{command.FinishInterviewCommand},
 			Type:  keyboard.ButtonData,
 		},
-		{
-			Value: "⏭️ Пропустить",
-			Data:  []string{command.MarkQuestionAsSkip},
-			Type:  keyboard.ButtonData,
-		},
 	}
 )

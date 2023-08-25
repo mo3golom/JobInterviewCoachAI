@@ -3,21 +3,23 @@ package acceptanswer
 import (
 	"context"
 	"job-interviewer/internal/interviewer/contracts"
-	"job-interviewer/internal/interviewer/service/interview"
+	"job-interviewer/internal/interviewer/flow"
 )
 
 type UseCase struct {
-	interviewService interview.Service
+	interviewFlow flow.InterviewFlow
 }
 
-func NewUseCase(i interview.Service) *UseCase {
-	return &UseCase{interviewService: i}
+func NewUseCase(interviewFlow flow.InterviewFlow) *UseCase {
+	return &UseCase{
+		interviewFlow: interviewFlow,
+	}
 }
 
 func (u *UseCase) AcceptAnswer(ctx context.Context, in contracts.AcceptAnswerIn) (string, error) {
-	return u.interviewService.AcceptAnswer(
+	return u.interviewFlow.AcceptAnswer(
 		ctx,
-		interview.AcceptAnswerIn{
+		flow.AcceptAnswerIn{
 			UserID: in.UserID,
 			Answer: in.Answer,
 		},

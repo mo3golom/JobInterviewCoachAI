@@ -1,0 +1,1 @@
+UPDATE interview SET state = 'default' WHERE state is null;

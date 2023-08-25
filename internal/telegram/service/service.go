@@ -7,8 +7,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
-	languageService "job-interviewer/internal/telegram/language"
-	"job-interviewer/internal/telegram/storage"
 	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
@@ -18,46 +16,28 @@ import (
 type DefaultService struct {
 	finishInterviewUC interviewerContracts.FinishInterviewUseCase
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase
-	keyboardService   keyboard.Service
-	storage           storage.Storage
-	languageService   languageService.Service
+	languageStorage   language.Storage
 }
 
 func NewService(
 	finishInterviewUC interviewerContracts.FinishInterviewUseCase,
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase,
-	keyboardService keyboard.Service,
-	storage storage.Storage,
-	l languageService.Service,
 ) *DefaultService {
 	return &DefaultService{
 		finishInterviewUC: finishInterviewUC,
 		getNextQuestionUC: getNextQuestionUC,
-		keyboardService:   keyboardService,
-		storage:           storage,
-		languageService:   l,
+		languageStorage:   configLanguage(),
 	}
 }
 
-func (s *DefaultService) Start(request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
-
-	_, err := sender.Send(
-		model.NewResponse(request.Chat.ID).
-			SetText(s.languageService.GetText(userLang, languageService.Start)).
-			SetKeyboardMarkup(s.GetUserMainKeyboard(userLang)),
-	)
-
-	return err
-}
-
 func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+	userLang := request.User.Lang
 	summary, err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
 	if err != nil {
 		return err
 	}
 
-	outMessage := s.languageService.GetText(languageService.English, languageService.FinishInterviewSummary)
+	outMessage := s.languageStorage.GetText(userLang, textKeyFinishInterview)
 	if summary != "" {
 		outMessage = fmt.Sprintf(
 			`%s
@@ -68,7 +48,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 	}
 
 	_, err = sender.Send(
-		model.NewResponse(request.Chat.ID).
+		model.NewResponse().
 			SetText(
 				fmt.Sprintf(
 					"%s %s",
@@ -81,18 +61,16 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 }
 
 func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	response := model.NewResponse(request.Chat.ID)
+	userLang := request.User.Lang
+	response := model.NewResponse()
 
 	question, err := s.getNextQuestionUC.GetNextQuestion(ctx, request.User.OriginalID)
-	if errors.Is(err, interviewerContracts.ErrNextQuestionEmpty) {
-		return s.FinishInterview(ctx, request, sender)
-	}
 	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
 		_, err = sender.Send(response.SetText(
 			fmt.Sprintf(
 				"%s %s",
 				handlers.RobotPrefix,
-				s.languageService.GetText(languageService.English, languageService.NotFoundActiveInterview),
+				s.languageStorage.GetText(userLang, textKeyNotFoundActiveInterview),
 			),
 		))
 		return err
@@ -101,7 +79,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 		return err
 	}
 
-	inlineKeyboard, err := s.keyboardService.BuildInlineKeyboardGrid(
+	inlineKeyboard, err := keyboard.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
 			Buttons: getNextQuestionButtons,
 		},
@@ -118,52 +96,12 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 	return err
 }
 
-// SaveBotLastMessageID Пока не используется, потому что могут быть интересные баги
-func (s *DefaultService) SaveBotLastMessageID(ctx context.Context, chatID int64, lastBotMessageID int64) error {
-	return s.storage.UpsertTelegramBotDetails(
-		ctx,
-		storage.UpsertTelegramBotDetailsIn{
-			ChatID:           chatID,
-			LastBotMessageID: lastBotMessageID,
-		},
-	)
-}
-
-// HideInlineKeyboardForBotLastMessage Пока не используется, потому что могут быть интересные баги
-func (s *DefaultService) HideInlineKeyboardForBotLastMessage(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	botLastMessageID, err := s.storage.GetBotLastMessageID(ctx, request.Chat.ID)
-	if errors.Is(err, storage.ErrEmptyTelegramBotDetailsResult) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if botLastMessageID == 0 {
-		return nil
-	}
-
-	messageText := ""
-	if request.Message != nil {
-		messageText = request.Message.Text
-	}
-
-	return sender.Update(
-		botLastMessageID,
-		model.NewResponse(request.Chat.ID).
-			SetText(messageText).
-			SetInlineKeyboardMarkup(nil),
-	)
-}
-
 func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.ReplyKeyboardMarkup {
-	return s.keyboardService.BuildKeyboardGrid(
+	return keyboard.BuildKeyboardGrid(
 		keyboard.BuildKeyboardIn{
 			Buttons: []keyboard.Button{
 				{
-					Value: s.languageService.GetText(lang, languageService.StartInterview),
-				},
-				{
-					Value: s.languageService.GetText(lang, languageService.ChooseLanguageSettings),
+					Value: s.languageStorage.GetText(lang, textKeyStartInterview),
 				},
 			},
 		},
