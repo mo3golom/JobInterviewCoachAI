@@ -7,9 +7,9 @@ const (
 	InterviewStatusStarted  InterviewStatus = "started"
 	InterviewStatusFinished InterviewStatus = "finished"
 
-	InterviewStateDefault             InterviewState = "default"
-	InterviewStateWaitingQuestion     InterviewState = "waiting_question"
-	InterviewStateAnsweringOnQuestion InterviewState = "answering_on_question"
+	InterviewStateDefault         InterviewState = "default"
+	InterviewStateWaitingQuestion InterviewState = "waiting_question"
+	InterviewStateWaitingAnswer   InterviewState = "waiting_answer"
 )
 
 type (

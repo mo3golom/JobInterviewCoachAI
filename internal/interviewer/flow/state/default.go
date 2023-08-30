@@ -26,13 +26,13 @@ func (s *Default) StartInterview(ctx context.Context, in StartInterviewIn) error
 }
 
 func (s *Default) FinishInterview(_ context.Context, _ *model.Interview) (string, error) {
-	return "", contracts.ErrEmptyActiveInterview
+	return "", contracts.ErrActionDoesntAllow
 }
 
 func (s *Default) NextQuestion(_ context.Context, _ *model.Interview) (*model.Question, error) {
-	return nil, contracts.ErrEmptyActiveInterview
+	return nil, contracts.ErrActionDoesntAllow
 }
 
 func (s *Default) AcceptAnswer(_ context.Context, _ AcceptAnswerIn) (string, error) {
-	return "", contracts.ErrEmptyActiveInterview
+	return "", contracts.ErrActionDoesntAllow
 }

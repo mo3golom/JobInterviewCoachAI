@@ -11,9 +11,9 @@ import (
 )
 
 type DefaultInterviewFlow struct {
-	defaultState             *state.Default
-	waitingQuestionState     *state.WaitingQuestionState
-	answeringOnQuestionState state.State
+	defaultState         *state.Default
+	waitingQuestionState state.State
+	waitingAnswerState   state.State
 
 	interviewService interview.Service
 }
@@ -25,14 +25,9 @@ func NewDefaultInterviewFlow(
 	interviewCtx := &DefaultInterviewFlow{
 		interviewService: interviewService,
 	}
-
-	defaultState := state.NewDefaultState(interviewCtx)
-	answeringOnQuestionState := state.NewAnsweringOnQuestionState(interviewCtx)
-	waitingQuestionState := state.NewWaitingQuestionState(interviewCtx)
-
-	interviewCtx.defaultState = defaultState
-	interviewCtx.answeringOnQuestionState = answeringOnQuestionState
-	interviewCtx.waitingQuestionState = waitingQuestionState
+	interviewCtx.defaultState = state.NewDefaultState(interviewCtx)
+	interviewCtx.waitingQuestionState = state.NewWaitingQuestionState(interviewCtx)
+	interviewCtx.waitingAnswerState = state.NewWaitingAnswerState(interviewCtx)
 
 	return interviewCtx
 }
@@ -144,8 +139,8 @@ func (w *DefaultInterviewFlow) CurrentState(interview *model.Interview) state.St
 		return w.defaultState
 	case model.InterviewStateWaitingQuestion:
 		return w.waitingQuestionState
-	case model.InterviewStateAnsweringOnQuestion:
-		return w.answeringOnQuestionState
+	case model.InterviewStateWaitingAnswer:
+		return w.waitingAnswerState
 	default:
 		return w.defaultState
 	}

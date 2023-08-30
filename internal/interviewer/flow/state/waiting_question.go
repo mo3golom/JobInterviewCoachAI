@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/model"
 )
 
@@ -15,28 +16,28 @@ func NewWaitingQuestionState(interviewFlow Context) *WaitingQuestionState {
 	}
 }
 
-func (w *WaitingQuestionState) StartInterview(_ context.Context, _ StartInterviewIn) error {
-	return nil
+func (s *WaitingQuestionState) StartInterview(_ context.Context, _ StartInterviewIn) error {
+	return contracts.ErrActionDoesntAllow
 }
 
-func (w *WaitingQuestionState) FinishInterview(ctx context.Context, interview *model.Interview) (string, error) {
-	return w.interviewFlow.FinishInterviewImpl(ctx, interview)
+func (s *WaitingQuestionState) FinishInterview(ctx context.Context, interview *model.Interview) (string, error) {
+	return s.interviewFlow.FinishInterviewImpl(ctx, interview)
 }
 
-func (w *WaitingQuestionState) NextQuestion(ctx context.Context, interview *model.Interview) (*model.Question, error) {
-	return w.interviewFlow.NextQuestionImpl(ctx, interview)
-}
-
-func (w *WaitingQuestionState) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error) {
-	result, err := w.interviewFlow.AcceptAnswerImpl(ctx, in)
+func (s *WaitingQuestionState) NextQuestion(ctx context.Context, interview *model.Interview) (*model.Question, error) {
+	result, err := s.interviewFlow.NextQuestionImpl(ctx, interview)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	err = w.interviewFlow.SetState(ctx, in.Interview.ID, model.InterviewStateAnsweringOnQuestion)
+	err = s.interviewFlow.SetState(ctx, interview.ID, model.InterviewStateWaitingAnswer)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return result, nil
+}
+
+func (s *WaitingQuestionState) AcceptAnswer(_ context.Context, _ AcceptAnswerIn) (string, error) {
+	return "", contracts.ErrActionDoesntAllow
 }
