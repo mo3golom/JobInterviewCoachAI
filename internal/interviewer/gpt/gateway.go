@@ -11,7 +11,7 @@ import (
 
 const (
 	getQuestionPrompt              = `I want you to act as an interviewer. I will be the candidate and you will ask me the interview questions for the %s position. I want you to only reply as the interviewer. Do not write all the conservation at once. I want you to only do the interview with me. Ask me the tricky questions and wait for my answers. Do not write explanations. Do not write "interviewer:". Ask me the questions one by one like an interviewer does and wait for my answers. My first sentence is "Hi"`
-	getPossibleAnswersPrompt       = "I don't know how to answer to this question, please give me a list of possible answers"
+	getAnswerSuggestionPrompt      = "I don't know how to answer to this question, please give me a list of possible answers"
 	summarizeAnswersCommentsPrompt = "I want to finish interview. Summarize the dialogue and give me feedback. Ignore messages where I ask help with answer."
 )
 
@@ -99,6 +99,42 @@ func (g *DefaultGateway) ContinueDialogue(ctx context.Context, dialog []model.Me
 	)
 }
 
+func (g *DefaultGateway) GetAnswerSuggestion(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error) {
+	messages := make([]openai.ChatCompletionMessage, 0, len(dialog))
+	for _, message := range dialog {
+		role := openai.ChatMessageRoleAssistant
+		if message.Role == model.RoleUser {
+			role = openai.ChatMessageRoleUser
+		}
+
+		messages = append(
+			messages,
+			openai.ChatCompletionMessage{
+				Role:    role,
+				Content: message.Content,
+			},
+		)
+	}
+
+	messages = append(
+		messages,
+		openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: getAnswerSuggestionPrompt,
+		},
+	)
+
+	return g.createChatCompletion(
+		ctx,
+		append([]openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: fmt.Sprintf(getQuestionPrompt, jobPosition),
+			},
+		}, messages...),
+	)
+}
+
 func (g *DefaultGateway) createChatCompletion(ctx context.Context, messages []openai.ChatCompletionMessage) (*model.Message, error) {
 	response, err := g.client.CreateChatCompletion(
 		ctx,
@@ -121,7 +157,7 @@ func (g *DefaultGateway) createChatCompletion(ctx context.Context, messages []op
 	content := regexp.
 		MustCompile(`[0-9]. `).
 		ReplaceAllString(response.Choices[0].Message.Content, "")
-	content = strings.TrimSpace(content)
+	content = strings.TrimSuffix(strings.TrimSpace(content), "\n")
 	return &model.Message{
 		Role:    model.RoleAssistant,
 		Content: content,

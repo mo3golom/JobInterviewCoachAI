@@ -30,5 +30,6 @@ type (
 		StartDialogue(ctx context.Context, jobPosition string) (*model.Message, error)
 		ContinueDialogue(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
 		SummarizeAnswersComments(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
+		GetAnswerSuggestion(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
 	}
 )

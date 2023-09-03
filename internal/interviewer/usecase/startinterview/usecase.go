@@ -2,6 +2,7 @@ package startinterview
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/flow"
 	"job-interviewer/internal/interviewer/service/interview"
@@ -27,4 +28,8 @@ func (u *UseCase) StartInterview(ctx context.Context, in contracts.StartIntervie
 			JobPosition: in.Questions.JobPosition,
 		},
 	)
+}
+
+func (u *UseCase) ContinueInterview(ctx context.Context, userID uuid.UUID) error {
+	return u.interviewFlow.ContinueInterview(ctx, userID)
 }

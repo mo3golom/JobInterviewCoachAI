@@ -10,6 +10,6 @@ import (
 
 type Service interface {
 	FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error
-	GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender) error
+	GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender, updateMessageID ...int64) error
 	GetUserMainKeyboard(lang language.Language) *tgbotapi.ReplyKeyboardMarkup
 }

@@ -15,7 +15,7 @@ func configLanguage() language.Storage {
 				map[language.TextKey]string{
 					language.TextKey(QuestionContinueActiveInterview): "У вас есть уже активное интервью %s! Хотите продолжить?",
 					language.TextKey(QuestionJobPosition):             "Выбери позицию, для которой хочешь пройти интервью:",
-					textKeyStartInterview:                             "🆕 Начать новое интервью",
+					textKeyStartInterview:                             "🚀 Начать новое интервью",
 				},
 			),
 		},

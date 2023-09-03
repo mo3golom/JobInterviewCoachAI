@@ -7,7 +7,7 @@ const (
 	InterviewStatusStarted  InterviewStatus = "started"
 	InterviewStatusFinished InterviewStatus = "finished"
 
-	InterviewStateDefault         InterviewState = "default"
+	InterviewStateStart           InterviewState = "start"
 	InterviewStateWaitingQuestion InterviewState = "waiting_question"
 	InterviewStateWaitingAnswer   InterviewState = "waiting_answer"
 )

@@ -11,7 +11,7 @@ import (
 )
 
 type DefaultInterviewFlow struct {
-	defaultState         *state.Default
+	startState           state.State
 	waitingQuestionState state.State
 	waitingAnswerState   state.State
 
@@ -25,7 +25,7 @@ func NewDefaultInterviewFlow(
 	interviewCtx := &DefaultInterviewFlow{
 		interviewService: interviewService,
 	}
-	interviewCtx.defaultState = state.NewDefaultState(interviewCtx)
+	interviewCtx.startState = state.NewStartState(interviewCtx)
 	interviewCtx.waitingQuestionState = state.NewWaitingQuestionState(interviewCtx)
 	interviewCtx.waitingAnswerState = state.NewWaitingAnswerState(interviewCtx)
 
@@ -40,6 +40,15 @@ func (w *DefaultInterviewFlow) StartInterview(ctx context.Context, in StartInter
 			JobPosition: in.JobPosition,
 		},
 	)
+}
+
+func (w *DefaultInterviewFlow) ContinueInterview(ctx context.Context, userID uuid.UUID) error {
+	activeInterview, err := w.interviewService.FindActiveInterview(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	return w.SetState(ctx, activeInterview.ID, model.InterviewStateWaitingQuestion)
 }
 
 func (w *DefaultInterviewFlow) FinishInterview(ctx context.Context, userID uuid.UUID) (string, error) {
@@ -60,10 +69,10 @@ func (w *DefaultInterviewFlow) NextQuestion(ctx context.Context, userID uuid.UUI
 	return w.CurrentState(activeInterview).NextQuestion(ctx, activeInterview)
 }
 
-func (w *DefaultInterviewFlow) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error) {
+func (w *DefaultInterviewFlow) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) error {
 	activeInterview, err := w.interviewService.FindActiveInterview(ctx, in.UserID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	return w.CurrentState(activeInterview).AcceptAnswer(
@@ -72,6 +81,18 @@ func (w *DefaultInterviewFlow) AcceptAnswer(ctx context.Context, in AcceptAnswer
 			Interview: activeInterview,
 			Answer:    in.Answer,
 		},
+	)
+}
+
+func (w *DefaultInterviewFlow) GetAnswerSuggestion(ctx context.Context, userID uuid.UUID) (*model.AnswerSuggestion, error) {
+	activeInterview, err := w.interviewService.FindActiveInterview(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return w.CurrentState(activeInterview).GetAnswerSuggestion(
+		ctx,
+		activeInterview,
 	)
 }
 
@@ -115,7 +136,7 @@ func (w *DefaultInterviewFlow) NextQuestionImpl(ctx context.Context, interview *
 	return w.interviewService.GetNextQuestion(ctx, interview)
 }
 
-func (w *DefaultInterviewFlow) AcceptAnswerImpl(ctx context.Context, in state.AcceptAnswerIn) (string, error) {
+func (w *DefaultInterviewFlow) AcceptAnswerImpl(ctx context.Context, in state.AcceptAnswerIn) error {
 	return w.interviewService.AcceptAnswer(
 		ctx,
 		interview.AcceptAnswerIn{
@@ -125,23 +146,27 @@ func (w *DefaultInterviewFlow) AcceptAnswerImpl(ctx context.Context, in state.Ac
 	)
 }
 
+func (w *DefaultInterviewFlow) GetAnswerSuggestionImpl(ctx context.Context, interview *model.Interview) (*model.AnswerSuggestion, error) {
+	return w.interviewService.GetAnswerSuggestion(ctx, interview)
+}
+
 func (w *DefaultInterviewFlow) SetState(ctx context.Context, interviewID uuid.UUID, state model.InterviewState) error {
 	return w.interviewService.UpdateInterviewState(ctx, interviewID, state)
 }
 
 func (w *DefaultInterviewFlow) CurrentState(interview *model.Interview) state.State {
 	if interview == nil {
-		return w.defaultState
+		return w.startState
 	}
 
 	switch interview.State {
-	case model.InterviewStateDefault:
-		return w.defaultState
+	case model.InterviewStateStart:
+		return w.startState
 	case model.InterviewStateWaitingQuestion:
 		return w.waitingQuestionState
 	case model.InterviewStateWaitingAnswer:
 		return w.waitingAnswerState
 	default:
-		return w.defaultState
+		return w.startState
 	}
 }

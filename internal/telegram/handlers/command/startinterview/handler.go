@@ -79,6 +79,11 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 	}
 
 	if skipActiveInterviewAnswered && !skipActiveInterview {
+		err = h.startInterviewUC.ContinueInterview(ctx, request.User.OriginalID)
+		if err != nil {
+			return err
+		}
+
 		return h.service.GetNextQuestion(ctx, request, sender)
 	}
 

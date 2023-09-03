@@ -31,7 +31,21 @@ func NewService(
 }
 
 func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
+	userLang := language.Russian
+
+	messageID, err := sender.Send(
+		model.NewResponse().
+			SetText(
+				fmt.Sprintf(
+					"%s %s",
+					handlers.RobotPrefix,
+					"loading...",
+				),
+			))
+	if err != nil {
+		return err
+	}
+
 	summary, err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
 	if err != nil {
 		return err
@@ -40,14 +54,14 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 	outMessage := s.languageStorage.GetText(userLang, textKeyFinishInterview)
 	if summary != "" {
 		outMessage = fmt.Sprintf(
-			`%s
-                    %s`,
+			`%s %s`,
 			outMessage,
 			summary,
 		)
 	}
 
-	_, err = sender.Send(
+	return sender.Update(
+		messageID,
 		model.NewResponse().
 			SetText(
 				fmt.Sprintf(
@@ -57,23 +71,41 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 				),
 			),
 	)
-	return err
 }
 
-func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender, updateMessageID ...int64) error {
 	userLang := request.User.Lang
-	response := model.NewResponse()
+	var targetUpdateMessageID int64
+	if len(updateMessageID) > 0 {
+		targetUpdateMessageID = updateMessageID[0]
+	} else {
+		var err error
+		targetUpdateMessageID, err = sender.Send(
+			model.NewResponse().
+				SetText(
+					fmt.Sprintf(
+						"%s %s",
+						handlers.RobotPrefix,
+						"loading...",
+					),
+				))
+		if err != nil {
+			return err
+		}
+	}
 
 	question, err := s.getNextQuestionUC.GetNextQuestion(ctx, request.User.OriginalID)
 	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
-		_, err = sender.Send(response.SetText(
-			fmt.Sprintf(
-				"%s %s",
-				handlers.RobotPrefix,
-				s.languageStorage.GetText(userLang, textKeyNotFoundActiveInterview),
-			),
-		))
-		return err
+		return sender.Update(
+			targetUpdateMessageID,
+			model.NewResponse().
+				SetText(
+					fmt.Sprintf(
+						"%s %s",
+						handlers.RobotPrefix,
+						s.languageStorage.GetText(userLang, textKeyNotFoundActiveInterview),
+					),
+				))
 	}
 	if err != nil {
 		return err
@@ -87,13 +119,13 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 	if err != nil {
 		return err
 	}
-	_, err = sender.Send(
-		response.
+
+	return sender.Update(
+		targetUpdateMessageID,
+		model.NewResponse().
 			SetText(fmt.Sprintf("%s %s", handlers.RobotPrefix, question.Text)).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
-
-	return err
 }
 
 func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.ReplyKeyboardMarkup {

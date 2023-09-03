@@ -17,5 +17,6 @@ type (
 
 	StartInterviewUseCase interface {
 		StartInterview(ctx context.Context, in StartInterviewIn) error
+		ContinueInterview(ctx context.Context, userID uuid.UUID) error
 	}
 )

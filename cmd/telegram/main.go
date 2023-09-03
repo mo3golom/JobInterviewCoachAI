@@ -52,6 +52,8 @@ func main() {
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.StartInterview)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.FinishInterview)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.SkipQuestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetAnswerSuggestion)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)

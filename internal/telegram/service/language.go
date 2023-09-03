@@ -16,7 +16,7 @@ func configLanguage() language.Storage {
 			language.Russian: language.NewWordStorage(
 				map[language.TextKey]string{
 					textKeyNotFoundActiveInterview: "I can`t find an active interview T-T",
-					textKeyStartInterview:          "🆕 Начать новое интервью",
+					textKeyStartInterview:          "🚀 Начать новое интервью",
 					textKeyFinishInterview:         "Interview’s over! Well done!",
 				},
 			),

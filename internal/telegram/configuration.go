@@ -3,7 +3,9 @@ package telegram
 import (
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/telegram/handlers/command/finishinterview"
+	"job-interviewer/internal/telegram/handlers/command/getanswersuggestion"
 	"job-interviewer/internal/telegram/handlers/command/getnextquestion"
+	"job-interviewer/internal/telegram/handlers/command/skipquestion"
 	"job-interviewer/internal/telegram/handlers/command/start"
 	"job-interviewer/internal/telegram/handlers/command/startinterview"
 	"job-interviewer/internal/telegram/handlers/message/acceptanswer"
@@ -14,10 +16,12 @@ import (
 
 type (
 	ConfigurationHandlers struct {
-		Start           telegram.CommandHandler
-		StartInterview  telegram.CommandHandler
-		FinishInterview telegram.CommandHandler
-		GetNextQuestion telegram.CommandHandler
+		Start               telegram.CommandHandler
+		StartInterview      telegram.CommandHandler
+		FinishInterview     telegram.CommandHandler
+		GetNextQuestion     telegram.CommandHandler
+		SkipQuestion        telegram.CommandHandler
+		GetAnswerSuggestion telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
 	}
@@ -51,9 +55,16 @@ func NewConfiguration(
 		StartInterview:  startInterviewHandler,
 		FinishInterview: finishinterview.NewHandler(service),
 		GetNextQuestion: getnextquestion.NewHandler(service),
+		SkipQuestion: skipquestion.NewHandler(
+			interviewerConfig.UseCases.AcceptAnswer,
+			service,
+		),
 		AcceptAnswer: acceptanswer.NewHandler(
 			interviewerConfig.UseCases.AcceptAnswer,
 			service,
+		),
+		GetAnswerSuggestion: getanswersuggestion.NewHandler(
+			interviewerConfig.UseCases.AcceptAnswer,
 		),
 	}
 

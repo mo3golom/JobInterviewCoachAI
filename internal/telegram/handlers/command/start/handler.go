@@ -22,8 +22,8 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) Handle(_ context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
+func (h *Handler) Handle(_ context.Context, _ *model.Request, sender telegram.Sender) error {
+	userLang := language.Russian
 
 	_, err := sender.Send(
 		model.NewResponse().
