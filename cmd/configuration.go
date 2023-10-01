@@ -6,24 +6,23 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"job-interviewer/pkg/logger"
+	variables "job-interviewer/pkg/variables"
 	"os"
 )
 
 func MustInitDB(ctx context.Context) *sqlx.DB {
-	envType := os.Getenv("ENV")
-
 	sslModeValue := "require"
-	if envType != "prod" {
+	if variables.AppEnvironment() != variables.EnvironmentProd {
 		sslModeValue = "disable"
 	}
 
 	source := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
+		loadEnvValue("DB_USER"),
+		loadEnvValue("DB_PASSWORD"),
+		loadEnvValue("DB_HOST"),
+		loadEnvValue("DB_PORT"),
+		loadEnvValue("DB_NAME"),
 		sslModeValue,
 	)
 
@@ -40,12 +39,20 @@ func MustInitDB(ctx context.Context) *sqlx.DB {
 }
 
 func MustInitLogger() logger.Logger {
-	envType := os.Getenv("ENV")
-	sentryDsn := os.Getenv("SENTRY_DSN")
-	log, err := logger.NewLogger(envType, sentryDsn)
+	sentryDsn := loadEnvValue("SENTRY_DSN")
+	log, err := logger.NewLogger(string(variables.AppEnvironment()), sentryDsn)
 	if err != nil {
 		panic(err)
 	}
 
 	return log
+}
+
+func loadEnvValue(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		panic("env value doesn't exists")
+	}
+
+	return value
 }

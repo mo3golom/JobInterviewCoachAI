@@ -30,7 +30,17 @@ func NewHandler(
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	if request.Message == nil {
+	if request.Voice != nil {
+		_, err := sender.Send(
+			model.NewResponse().SetText(
+				h.languageStorage.GetText(language.Russian, textKeyVoiceMessageIsUnsupported),
+			),
+		)
+
+		return err
+	}
+
+	if request.Message == nil || request.Message.Text == "" {
 		return nil
 	}
 

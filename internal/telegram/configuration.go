@@ -8,9 +8,11 @@ import (
 	"job-interviewer/internal/telegram/handlers/command/skipquestion"
 	"job-interviewer/internal/telegram/handlers/command/start"
 	"job-interviewer/internal/telegram/handlers/command/startinterview"
+	"job-interviewer/internal/telegram/handlers/errors"
 	"job-interviewer/internal/telegram/handlers/message/acceptanswer"
 	"job-interviewer/internal/telegram/middleware/user"
 	tgService "job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/logger"
 	"job-interviewer/pkg/telegram"
 )
 
@@ -24,6 +26,8 @@ type (
 		GetAnswerSuggestion telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
+
+		SubscribeErrorHandler telegram.ErrorHandler
 	}
 
 	Middlewares struct {
@@ -38,6 +42,7 @@ type (
 
 func NewConfiguration(
 	interviewerConfig *interviewer.Configuration,
+	logger logger.Logger,
 ) *Configuration {
 	service := tgService.NewService(
 		interviewerConfig.UseCases.FinishInterview,
@@ -65,6 +70,10 @@ func NewConfiguration(
 		),
 		GetAnswerSuggestion: getanswersuggestion.NewHandler(
 			interviewerConfig.UseCases.AcceptAnswer,
+		),
+		SubscribeErrorHandler: errors.NewSubscribeErrorHandler(
+			service,
+			logger,
 		),
 	}
 

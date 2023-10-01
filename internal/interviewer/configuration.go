@@ -6,6 +6,7 @@ import (
 	"job-interviewer/internal/interviewer/flow"
 	"job-interviewer/internal/interviewer/gpt"
 	interview2 "job-interviewer/internal/interviewer/service/interview"
+	"job-interviewer/internal/interviewer/service/subscription"
 	"job-interviewer/internal/interviewer/storage/interview"
 	"job-interviewer/internal/interviewer/storage/messages"
 	"job-interviewer/internal/interviewer/storage/user"
@@ -15,6 +16,7 @@ import (
 	"job-interviewer/internal/interviewer/usecase/getnextquestion"
 	"job-interviewer/internal/interviewer/usecase/startinterview"
 	user2 "job-interviewer/internal/interviewer/usecase/user"
+	externalSubscription "job-interviewer/pkg/subscription"
 	"job-interviewer/pkg/transactional"
 )
 
@@ -33,21 +35,27 @@ type (
 	}
 )
 
-func NewConfiguration(db *sqlx.DB, transactionalTemplate transactional.Template, gptGateway gpt.Gateway) *Configuration {
+func NewConfiguration(
+	db *sqlx.DB,
+	transactionalTemplate transactional.Template,
+	gptGateway gpt.Gateway,
+	externalSubscriptionService externalSubscription.Service,
+) *Configuration {
 	interviewStorage := interview.NewStorage(db)
 	userStorage := user.NewStorage(db)
 	messagesStorage := messages.NewStorage(db)
 
-	interviewService := interview2.NewInterviewService(gptGateway, interviewStorage, messagesStorage, transactionalTemplate)
+	subscriptionService := subscription.NewService(externalSubscriptionService, messagesStorage)
+	interviewService := interview2.NewInterviewService(gptGateway, interviewStorage, messagesStorage, transactionalTemplate, subscriptionService)
 	interviewFlow := flow.NewDefaultInterviewFlow(interviewService)
 
 	useCases := &ConfigurationUseCases{
-		StartInterview:  startinterview.NewUseCase(interviewService, interviewFlow),
-		FinishInterview: finishinterview.NewUseCase(interviewFlow),
-		GetNextQuestion: getnextquestion.NewUseCase(interviewFlow),
-		AcceptAnswer:    acceptanswer.NewUseCase(interviewFlow),
+		StartInterview:  startinterview.NewUseCase(interviewService, interviewFlow, subscriptionService),
+		FinishInterview: finishinterview.NewUseCase(interviewFlow, subscriptionService),
+		GetNextQuestion: getnextquestion.NewUseCase(interviewFlow, subscriptionService),
+		AcceptAnswer:    acceptanswer.NewUseCase(interviewFlow, subscriptionService),
 		GetInterview:    getinterview.NewUseCase(interviewService),
-		User:            user2.NewUseCase(userStorage, transactionalTemplate),
+		User:            user2.NewUseCase(userStorage, transactionalTemplate, externalSubscriptionService),
 	}
 
 	return &Configuration{UseCases: useCases}

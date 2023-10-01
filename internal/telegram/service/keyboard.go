@@ -23,4 +23,12 @@ var (
 			Type:  keyboard.ButtonData,
 		},
 	}
+
+	subscribeButtons = []keyboard.InlineButton{
+		{
+			Value: "💸 Купить подписку",
+			Data:  []string{command.FinishInterviewCommand},
+			Type:  keyboard.ButtonData,
+		},
+	}
 )

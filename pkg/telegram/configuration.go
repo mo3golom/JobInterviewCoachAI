@@ -10,8 +10,8 @@ type Configuration struct {
 	Gateway Gateway
 }
 
-func NewConfiguration(log logger.Logger) *Configuration {
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TG_BOT_TOKEN"))
+func NewConfiguration(log logger.Logger, token string) *Configuration {
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		panic(err)
 	}

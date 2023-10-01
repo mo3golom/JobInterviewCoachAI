@@ -6,6 +6,7 @@ import (
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/flow"
 	"job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/service/subscription"
 )
 
 const (
@@ -13,16 +14,29 @@ const (
 )
 
 type UseCase struct {
-	interviewFlow flow.InterviewFlow
+	interviewFlow       flow.InterviewFlow
+	subscriptionService subscription.Service
 }
 
-func NewUseCase(interviewFlow flow.InterviewFlow) *UseCase {
+func NewUseCase(
+	interviewFlow flow.InterviewFlow,
+	subscriptionService subscription.Service,
+) *UseCase {
 	return &UseCase{
-		interviewFlow: interviewFlow,
+		interviewFlow:       interviewFlow,
+		subscriptionService: subscriptionService,
 	}
 }
 
 func (u *UseCase) AcceptAnswer(ctx context.Context, in contracts.AcceptAnswerIn) error {
+	available, err := u.subscriptionService.IsAvailable(ctx, in.UserID)
+	if err != nil {
+		return err
+	}
+	if !available.Result {
+		return available.Reason
+	}
+
 	return u.interviewFlow.AcceptAnswer(
 		ctx,
 		flow.AcceptAnswerIn{
@@ -33,6 +47,14 @@ func (u *UseCase) AcceptAnswer(ctx context.Context, in contracts.AcceptAnswerIn)
 }
 
 func (u *UseCase) SkipQuestion(ctx context.Context, userID uuid.UUID) error {
+	available, err := u.subscriptionService.IsAvailable(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if !available.Result {
+		return available.Reason
+	}
+
 	return u.interviewFlow.AcceptAnswer(
 		ctx,
 		flow.AcceptAnswerIn{
@@ -43,5 +65,13 @@ func (u *UseCase) SkipQuestion(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (u *UseCase) GetAnswerSuggestion(ctx context.Context, userID uuid.UUID) (*model.AnswerSuggestion, error) {
+	available, err := u.subscriptionService.IsAvailable(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !available.Result {
+		return nil, available.Reason
+	}
+
 	return u.interviewFlow.GetAnswerSuggestion(ctx, userID)
 }

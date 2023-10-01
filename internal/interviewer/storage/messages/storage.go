@@ -72,3 +72,35 @@ func (d *DefaultStorage) GetMessagesByInterviewID(ctx context.Context, interview
 	}
 	return out, nil
 }
+
+func (d *DefaultStorage) GetMessagesFromActiveInterviewByUserID(ctx context.Context, userID uuid.UUID) ([]model.Message, error) {
+	query := `
+		SELECT im.content, im.role, im.created_at
+		FROM  interview_messages as im
+		INNER JOIN interview i on im.interview_id = i.id
+		WHERE i.status = $1 and i.user_id = $2
+    `
+
+	var results []sqlxMessage
+
+	err := d.db.SelectContext(
+		ctx,
+		&results,
+		query,
+		model.InterviewStatusStarted,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]model.Message, 0, len(results))
+	for _, res := range results {
+		out = append(out, model.Message{
+			Role:      model.Role(res.Role),
+			Content:   res.Content,
+			CreatedAt: res.CreatedAt,
+		})
+	}
+	return out, nil
+}

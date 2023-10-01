@@ -7,6 +7,7 @@ import (
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/interviewer/model"
+	"job-interviewer/internal/interviewer/service/subscription"
 	"job-interviewer/internal/interviewer/storage/interview"
 	"job-interviewer/internal/interviewer/storage/messages"
 	"job-interviewer/pkg/transactional"
@@ -16,6 +17,7 @@ type DefaultService struct {
 	gpt                   gpt.Gateway
 	interviewStorage      interview.Storage
 	messagesStorage       messages.Storage
+	subscriptionService   subscription.Service
 	transactionalTemplate transactional.Template
 }
 
@@ -24,12 +26,14 @@ func NewInterviewService(
 	is interview.Storage,
 	messagesStorage messages.Storage,
 	tr transactional.Template,
+	subscriptionService subscription.Service,
 ) *DefaultService {
 	return &DefaultService{
 		gpt:                   g,
 		interviewStorage:      is,
 		messagesStorage:       messagesStorage,
 		transactionalTemplate: tr,
+		subscriptionService:   subscriptionService,
 	}
 }
 
@@ -84,7 +88,12 @@ func (s *DefaultService) FinishInterviewWithoutSummary(ctx context.Context, inte
 
 	interview.Status = model.InterviewStatusFinished
 	return s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		return s.interviewStorage.UpdateInterview(ctx, tx, interview)
+		err := s.interviewStorage.UpdateInterview(ctx, tx, interview)
+		if err != nil {
+			return err
+		}
+
+		return s.subscriptionService.DecreaseFreeAttempts(ctx, tx, interview.UserID)
 	})
 }
 

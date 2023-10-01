@@ -28,7 +28,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 }
 
 func (s *DefaultStorage) CreateUser(ctx context.Context, tx transactional.Tx, user *model.User) error {
-	query := `
+	const query = `
 		INSERT 
 		INTO "user" (id, lang) 
 		VALUES (:id, :lang)
@@ -47,7 +47,7 @@ func (s *DefaultStorage) CreateUser(ctx context.Context, tx transactional.Tx, us
 }
 
 func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactional.Tx, telegramID int64, userID uuid.UUID) error {
-	query := `
+	const query = `
 		INSERT 
 		INTO user_telegram (user_id, telegram_id) 
 		VALUES (:user_id, :telegram_id)
@@ -65,8 +65,8 @@ func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactio
 	return err
 }
 
-func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*model.User, error) {
-	query := `
+func (s *DefaultStorage) FindUserByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*model.User, error) {
+	const query = `
 		SELECT u.id, u.lang 
 		FROM user_telegram as ut
 		JOIN "user" as u on u.id = ut.user_id
@@ -94,10 +94,39 @@ func (s *DefaultStorage) FindUserIDByTelegramID(ctx context.Context, tx transact
 	}, nil
 }
 
+func (s *DefaultStorage) FindUserByID(ctx context.Context, userID uuid.UUID) (*model.User, error) {
+	const query = `
+		SELECT u.id, u.lang
+		FROM "user" as u
+		WHERE u.id = $1
+    `
+
+	var results []sqlxUser
+	err := s.db.SelectContext(
+		ctx,
+		&results,
+		query,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	if len(results) == 0 {
+		return nil, ErrEmptyUserResult
+	}
+
+	return &model.User{
+		ID:   results[0].ID,
+		Lang: results[0].Lang,
+	}, nil
+}
+
 func (s *DefaultStorage) UpdateLanguage(ctx context.Context, tx transactional.Tx, userID uuid.UUID, language language.Language) error {
-	query := `
+	const query = `
        UPDATE "user" SET
-        lang = :lang
+        lang = :lang,
+        updated_at = now()
        WHERE id = :id
     `
 

@@ -107,6 +107,25 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 					),
 				))
 	}
+	if errors.Is(err, interviewerContracts.ErrQuestionsInFreePlanHaveExpired) {
+		err = sender.Update(
+			targetUpdateMessageID,
+			model.NewResponse().
+				SetText(
+					fmt.Sprintf(
+						"%s %s",
+						handlers.RobotPrefix,
+						s.languageStorage.GetText(language.Russian, textKeyFreeQuestionsIsEnd),
+					),
+				))
+
+		if err != nil {
+			return err
+		}
+
+		return s.FinishInterview(ctx, request, sender)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -138,4 +157,24 @@ func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.R
 			},
 		},
 	)
+}
+
+func (s *DefaultService) ShowSubscribeMessage(sender telegram.Sender) error {
+	userLang := language.Russian
+
+	inlineKeyboard, err := keyboard.BuildInlineKeyboardGrid(
+		keyboard.BuildInlineKeyboardIn{
+			Buttons: subscribeButtons,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = sender.Send(
+		model.NewResponse().
+			SetText(s.languageStorage.GetText(userLang, textKeySubscribe)).
+			SetInlineKeyboardMarkup(inlineKeyboard),
+	)
+	return err
 }

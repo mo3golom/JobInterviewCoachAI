@@ -24,6 +24,7 @@ type (
 		Chat      *Chat
 		User      *User
 		Message   *Message
+		Voice     *Voice
 	}
 
 	Chat struct {
@@ -38,6 +39,12 @@ type (
 
 	Message struct {
 		Text string
+	}
+
+	Voice struct {
+		FileID   string
+		Duration int
+		URL      string
 	}
 )
 
@@ -63,6 +70,13 @@ func NewRequest(in tgbotapi.Update) Request {
 
 		request.Command = in.Message.Text
 		request.Data = []string{}
+
+		if in.Message.Voice != nil {
+			request.Voice = &Voice{
+				FileID:   in.Message.Voice.FileID,
+				Duration: in.Message.Voice.Duration,
+			}
+		}
 	}
 
 	if in.CallbackQuery == nil {

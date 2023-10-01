@@ -27,7 +27,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 }
 
 func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
-	query := `
+	const query = `
 		INSERT 
 		INTO interview (id, user_id, status, job_position, job_level, question_count) 
 		VALUES (:id, :user_id, :status, :job_position, :job_level, :question_count)
@@ -47,7 +47,7 @@ func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.T
 }
 
 func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
-	query := `
+	const query = `
 		UPDATE interview
 		SET  
 		    status=:status,
@@ -64,7 +64,7 @@ func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.T
 }
 
 func (s *DefaultStorage) UpdateInterviewState(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, state model.InterviewState) error {
-	query := `
+	const query = `
 		UPDATE interview
 		SET  
 		    state=:state,
@@ -81,7 +81,7 @@ func (s *DefaultStorage) UpdateInterviewState(ctx context.Context, tx transactio
 }
 
 func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx transactional.Tx, userID uuid.UUID) (*model.Interview, error) {
-	query := `
+	const query = `
 		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count, i.state
 		FROM interview as i
 		WHERE i.user_id = $1 and i.status = $2

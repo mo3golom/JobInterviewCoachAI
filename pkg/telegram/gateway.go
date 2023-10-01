@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/helper"
 	"job-interviewer/pkg/logger"
@@ -11,13 +12,18 @@ import (
 type DefaultGateway struct {
 	client          externalClient
 	commandHandlers map[string]Handler
+	errorHandlers   []ErrorHandler
 	messageHandlers []Handler
 	middlewares     []Middleware
-	log             logger.Logger
+
+	errorLogHandler ErrorHandler
 }
 
 func NewGateway(c externalClient, log logger.Logger) *DefaultGateway {
-	return &DefaultGateway{client: c, log: log}
+	gateway := &DefaultGateway{client: c}
+	gateway.errorLogHandler = &ErrorLogHandler{log: log}
+
+	return gateway
 }
 
 func (g *DefaultGateway) RegisterMiddleware(middleware Middleware) {
@@ -37,6 +43,13 @@ func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler) {
 	g.commandHandlers = copyCommandHandlers
 }
 
+func (g *DefaultGateway) RegisterErrorHandler(handler ErrorHandler) {
+	copyErrorHandlers := helper.CopySlice[ErrorHandler](g.errorHandlers)
+	copyErrorHandlers = append(copyErrorHandlers, handler)
+
+	g.errorHandlers = copyErrorHandlers
+}
+
 func (g *DefaultGateway) RegisterHandler(handler Handler) {
 	copyMessageHandlers := helper.CopySlice[Handler](g.messageHandlers)
 	copyMessageHandlers = append(copyMessageHandlers, handler)
@@ -44,27 +57,50 @@ func (g *DefaultGateway) RegisterHandler(handler Handler) {
 	g.messageHandlers = copyMessageHandlers
 }
 
-func (g *DefaultGateway) Run(ctx context.Context, config tgbotapi.UpdateConfig) {
+func (g *DefaultGateway) Run(ctx context.Context, config Config) {
 	senderImpl := &sender{
 		client: g.client,
 	}
 
-	updates := g.client.GetUpdatesChan(config)
+	tgConfig := tgbotapi.NewUpdate(config.Offset)
+	tgConfig.Timeout = config.Timeout
+	tgConfig.Limit = config.Limit
+
+	var updates tgbotapi.UpdatesChannel
+	if config.enableWebhookUpdates {
+		webhook, err := tgbotapi.NewWebhook("/updates")
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = g.client.Request(webhook)
+		if err != nil {
+			panic(err)
+		}
+
+		info, err := g.client.GetWebhookInfo()
+		if err != nil {
+			panic(err)
+		}
+
+		if info.LastErrorDate != 0 {
+			panic(fmt.Sprintf("failed to set webhook: %s", info.LastErrorMessage))
+		}
+
+		updates = g.client.ListenForWebhook("/updates")
+	} else {
+		updates = g.client.GetUpdatesChan(tgConfig)
+	}
+
 	for update := range updates {
 		go func(in tgbotapi.Update) {
 			request := model.NewRequest(in)
-
 			err := g.handleUpdate(ctx, &request, senderImpl)
-			if err != nil {
-				g.logHandleUpdateError(&request, err)
-
-				_, _ = senderImpl.Send(
-					model.
-						NewResponse().
-						SetChatID(request.Chat.ID).
-						SetText("Something went wrong :("),
-				)
+			if err == nil {
+				return
 			}
+
+			g.handleError(ctx, err, &request, senderImpl)
 		}(update)
 	}
 
@@ -115,21 +151,35 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 	return nil
 }
 
+func (g *DefaultGateway) handleError(ctx context.Context, err error, request *model.Request, senderImpl *sender) {
+	senderAdapterImpl := senderAdapter{
+		senderImpl,
+		request.Chat.ID,
+	}
+	defer (func() {
+		senderAdapterImpl = senderAdapter{}
+	})()
+
+	var ok bool
+	for _, errHandler := range g.errorHandlers {
+		if errHandler == nil {
+			continue
+		}
+
+		ok = errHandler.Handle(ctx, err, request, senderAdapterImpl)
+		if !ok {
+			continue
+		}
+
+		return
+	}
+
+	if !ok {
+		g.errorLogHandler.Handle(ctx, err, request, senderAdapterImpl)
+	}
+}
+
 func (g *DefaultGateway) determineCommand(request *model.Request) (Handler, bool) {
 	command, ok := g.commandHandlers[request.Command]
 	return command, ok
-}
-
-func (g *DefaultGateway) logHandleUpdateError(request *model.Request, err error) {
-	g.log.Error(
-		"telegram handle update error",
-		err,
-		logger.Field{Key: "user_tg_id", Value: request.User.ID},
-		logger.Field{Key: "user_id", Value: request.User.OriginalID},
-		logger.Field{Key: "chat_id", Value: request.Chat.ID},
-		logger.Field{Key: "tg_update_id", Value: request.UpdateID},
-		logger.Field{Key: "tg_command", Value: request.Command},
-		logger.Field{Key: "tg_message_id", Value: request.MessageID},
-		logger.Field{Key: "tg_message_text", Value: request.Message.Text},
-	)
 }

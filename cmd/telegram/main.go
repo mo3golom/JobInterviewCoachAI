@@ -2,19 +2,22 @@ package main
 
 import (
 	"context"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/sashabaranov/go-openai"
+	jobinterviewer "job-interviewer"
 	"job-interviewer/cmd"
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/telegram"
+	"job-interviewer/pkg/subscription"
 	telegramPkg "job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/transactional"
+	variables2 "job-interviewer/pkg/variables"
 	"os"
 )
 
 func main() {
+
 	ctx := context.Background()
 	if _, err := os.Stat(".env"); err == nil {
 		// path/to/whatever exists
@@ -28,20 +31,33 @@ func main() {
 	template := transactional.NewTemplate(db)
 
 	log := cmd.MustInitLogger()
+	variables, err := variables2.NewConfiguration()
+	if err != nil {
+		panic(err)
+	}
 
-	c := openai.NewClient(os.Getenv("GPT_API_KEY"))
+	c := openai.NewClient(
+		variables.Repository.MustGet().GetString(jobinterviewer.GPTApiKey),
+	)
 	gptGateway := gpt.NewGateway(c)
 
-	tgPkgConfig := telegramPkg.NewConfiguration(log)
+	tgPkgConfig := telegramPkg.NewConfiguration(
+		log,
+		variables.Repository.MustGet().GetString(jobinterviewer.TGBotToken),
+	)
 	tgPkg := tgPkgConfig.Gateway
+
+	subscriptionService := subscription.NewSubscriptionService(db)
 
 	interviewerConfig := interviewer.NewConfiguration(
 		db,
 		template,
 		gptGateway,
+		subscriptionService,
 	)
 	telegramConfig := telegram.NewConfiguration(
 		interviewerConfig,
+		log,
 	)
 
 	// REGISTER MIDDLEWARE
@@ -58,7 +74,11 @@ func main() {
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)
 
-	updateConfig := tgbotapi.NewUpdate(0)
-	updateConfig.Timeout = 60
+	// REGISTER ERROR HANDLER
+	tgPkg.RegisterErrorHandler(telegramConfig.Handlers.SubscribeErrorHandler)
+
+	updateConfig := telegramPkg.Config{
+		Timeout: 60,
+	}
 	tgPkg.Run(ctx, updateConfig)
 }
