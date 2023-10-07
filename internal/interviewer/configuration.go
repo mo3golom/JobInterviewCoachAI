@@ -6,6 +6,7 @@ import (
 	"job-interviewer/internal/interviewer/flow"
 	"job-interviewer/internal/interviewer/gpt"
 	interview2 "job-interviewer/internal/interviewer/service/interview"
+	"job-interviewer/internal/interviewer/service/payments"
 	"job-interviewer/internal/interviewer/service/subscription"
 	"job-interviewer/internal/interviewer/storage/interview"
 	"job-interviewer/internal/interviewer/storage/messages"
@@ -15,9 +16,12 @@ import (
 	"job-interviewer/internal/interviewer/usecase/getinterview"
 	"job-interviewer/internal/interviewer/usecase/getnextquestion"
 	"job-interviewer/internal/interviewer/usecase/startinterview"
+	subscription2 "job-interviewer/internal/interviewer/usecase/subscription"
 	user2 "job-interviewer/internal/interviewer/usecase/user"
+	externalPayments "job-interviewer/pkg/payments"
 	externalSubscription "job-interviewer/pkg/subscription"
 	"job-interviewer/pkg/transactional"
+	"job-interviewer/pkg/variables"
 )
 
 type (
@@ -28,6 +32,7 @@ type (
 		AcceptAnswer    contracts.AcceptAnswerUseCase
 		GetInterview    contracts.GetInterviewUsecase
 		User            contracts.UserUseCase
+		Subscription    contracts.SubscriptionUseCase
 	}
 
 	Configuration struct {
@@ -40,6 +45,8 @@ func NewConfiguration(
 	transactionalTemplate transactional.Template,
 	gptGateway gpt.Gateway,
 	externalSubscriptionService externalSubscription.Service,
+	externalPaymentsService externalPayments.Service,
+	variables variables.Repository,
 ) *Configuration {
 	interviewStorage := interview.NewStorage(db)
 	userStorage := user.NewStorage(db)
@@ -48,6 +55,15 @@ func NewConfiguration(
 	subscriptionService := subscription.NewService(externalSubscriptionService, messagesStorage)
 	interviewService := interview2.NewInterviewService(gptGateway, interviewStorage, messagesStorage, transactionalTemplate, subscriptionService)
 	interviewFlow := flow.NewDefaultInterviewFlow(interviewService)
+	paymentsService, err := payments.NewDefaultService(
+		externalPaymentsService,
+		externalSubscriptionService,
+		transactionalTemplate,
+		variables,
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	useCases := &ConfigurationUseCases{
 		StartInterview:  startinterview.NewUseCase(interviewService, interviewFlow, subscriptionService),
@@ -56,6 +72,7 @@ func NewConfiguration(
 		AcceptAnswer:    acceptanswer.NewUseCase(interviewFlow, subscriptionService),
 		GetInterview:    getinterview.NewUseCase(interviewService),
 		User:            user2.NewUseCase(userStorage, transactionalTemplate, externalSubscriptionService),
+		Subscription:    subscription2.NewUseCase(paymentsService),
 	}
 
 	return &Configuration{UseCases: useCases}

@@ -6,7 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"job-interviewer/pkg/payments"
+	"job-interviewer/pkg/payments/gateway"
+	"job-interviewer/pkg/payments/model"
 	"job-interviewer/pkg/structs"
 	"net/http"
 	"strconv"
@@ -20,11 +21,11 @@ const (
 )
 
 var (
-	statusMap = structs.NewBidirectionalMap[string, payments.Status](
-		[]structs.Pair[string, payments.Status]{
-			{Left: "pending", Right: payments.StatusPending},
-			{Left: "succeeded", Right: payments.StatusPaid},
-			{Left: "canceled", Right: payments.StatusCanceled},
+	statusMap = structs.NewBidirectionalMap[string, model.Status](
+		[]structs.Pair[string, model.Status]{
+			{Left: "pending", Right: model.StatusPending},
+			{Left: "succeeded", Right: model.StatusPaid},
+			{Left: "canceled", Right: model.StatusCanceled},
 		},
 	)
 )
@@ -73,7 +74,7 @@ func NewYMGateway(
 	shopID int64,
 	secretKey string,
 	httpClient httpClient,
-) payments.Gateway {
+) *Gateway {
 	return &Gateway{
 		shopID:     shopID,
 		secretKey:  secretKey,
@@ -81,7 +82,7 @@ func NewYMGateway(
 	}
 }
 
-func (g *Gateway) CreatePayment(ctx context.Context, in *payments.GatewayCreatePaymentIn) (*payments.GatewayCreatePaymentOut, error) {
+func (g *Gateway) CreatePayment(ctx context.Context, in *gateway.CreatePaymentIn) (*gateway.CreatePaymentOut, error) {
 	payload := createPaymentRequest{
 		Amount: amount{
 			Value:    float64(in.Amount),
@@ -130,13 +131,13 @@ func (g *Gateway) CreatePayment(ctx context.Context, in *payments.GatewayCreateP
 		return nil, err
 	}
 
-	return &payments.GatewayCreatePaymentOut{
-		ExternalID:  payments.ExternalID(res.ID),
+	return &gateway.CreatePaymentOut{
+		ExternalID:  model.ExternalID(res.ID),
 		RedirectURl: res.Confirmation.ConfirmationUrl,
 	}, nil
 }
 
-func (g *Gateway) GetPaymentStatus(ctx context.Context, ID payments.ExternalID) (*payments.Status, error) {
+func (g *Gateway) GetPaymentStatus(ctx context.Context, ID model.ExternalID) (*model.Status, error) {
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
@@ -169,7 +170,7 @@ func (g *Gateway) GetPaymentStatus(ctx context.Context, ID payments.ExternalID) 
 
 	statusOut, ok := statusMap.GetRight(res.Status)
 	if !ok {
-		return nil, payments.ErrPaymentWrongStatus
+		return nil, model.ErrPaymentWrongStatus
 	}
 
 	return &statusOut, nil

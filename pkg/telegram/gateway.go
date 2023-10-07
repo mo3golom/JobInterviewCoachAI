@@ -7,6 +7,11 @@ import (
 	"job-interviewer/pkg/helper"
 	"job-interviewer/pkg/logger"
 	"job-interviewer/pkg/telegram/model"
+	"net/http"
+)
+
+const (
+	webhookRoute = "/updates"
 )
 
 type DefaultGateway struct {
@@ -17,10 +22,18 @@ type DefaultGateway struct {
 	middlewares     []Middleware
 
 	errorLogHandler ErrorHandler
+	token           string
 }
 
-func NewGateway(c externalClient, log logger.Logger) *DefaultGateway {
-	gateway := &DefaultGateway{client: c}
+func NewGateway(
+	c externalClient,
+	log logger.Logger,
+	token string,
+) *DefaultGateway {
+	gateway := &DefaultGateway{
+		client: c,
+		token:  token,
+	}
 	gateway.errorLogHandler = &ErrorLogHandler{log: log}
 
 	return gateway
@@ -67,27 +80,38 @@ func (g *DefaultGateway) Run(ctx context.Context, config Config) {
 	tgConfig.Limit = config.Limit
 
 	var updates tgbotapi.UpdatesChannel
-	if config.enableWebhookUpdates {
-		webhook, err := tgbotapi.NewWebhook("/updates")
-		if err != nil {
-			panic(err)
+	if config.Webhook != nil && config.Webhook.Enable {
+		url := fmt.Sprintf("%s/%s", config.Webhook.Host, g.token)
+		if !config.Webhook.Debug {
+			webhook, err := tgbotapi.NewWebhook(fmt.Sprintf("%s%s", url, webhookRoute))
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = g.client.Request(webhook)
+			if err != nil {
+				panic(err)
+			}
+
+			info, err := g.client.GetWebhookInfo()
+			if err != nil {
+				panic(err)
+			}
+
+			if info.LastErrorDate != 0 {
+				panic(fmt.Sprintf("failed to set webhook: %s", info.LastErrorMessage))
+			}
 		}
 
-		_, err = g.client.Request(webhook)
-		if err != nil {
-			panic(err)
-		}
+		updates = g.client.ListenForWebhook(webhookRoute)
+		go func(addr string) {
+			err := http.ListenAndServe(addr, nil)
+			if err != nil {
+				panic(err)
+			}
+		}(url)
 
-		info, err := g.client.GetWebhookInfo()
-		if err != nil {
-			panic(err)
-		}
-
-		if info.LastErrorDate != 0 {
-			panic(fmt.Sprintf("failed to set webhook: %s", info.LastErrorMessage))
-		}
-
-		updates = g.client.ListenForWebhook("/updates")
+		fmt.Printf("bot started, webhook: %s", url)
 	} else {
 		updates = g.client.GetUpdatesChan(tgConfig)
 	}
@@ -105,7 +129,6 @@ func (g *DefaultGateway) Run(ctx context.Context, config Config) {
 	}
 
 }
-
 func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Request, senderImpl *sender) error {
 	senderAdapterImpl := senderAdapter{
 		senderImpl,

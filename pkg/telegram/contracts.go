@@ -35,10 +35,16 @@ type (
 	}
 
 	Config struct {
-		Offset               int
-		Limit                int
-		Timeout              int
-		enableWebhookUpdates bool
+		Offset  int
+		Limit   int
+		Timeout int
+		Webhook *WebhookConfig
+	}
+
+	WebhookConfig struct {
+		Enable bool
+		Host   string
+		Debug  bool
 	}
 
 	Gateway interface {

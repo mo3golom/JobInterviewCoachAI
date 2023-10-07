@@ -11,6 +11,14 @@ type UseCase struct {
 	payments payments.Service
 }
 
+func NewUseCase(
+	payments payments.Service,
+) *UseCase {
+	return &UseCase{
+		payments: payments,
+	}
+}
+
 func (u *UseCase) CreatePayment(ctx context.Context, userID uuid.UUID) (*contracts.CreatePaymentOut, error) {
 	result, err := u.payments.CreatePaymentForSubscription(
 		ctx,

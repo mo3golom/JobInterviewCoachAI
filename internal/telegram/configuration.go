@@ -2,9 +2,11 @@ package telegram
 
 import (
 	"job-interviewer/internal/interviewer"
+	"job-interviewer/internal/telegram/handlers/command/checkpayment"
 	"job-interviewer/internal/telegram/handlers/command/finishinterview"
 	"job-interviewer/internal/telegram/handlers/command/getanswersuggestion"
 	"job-interviewer/internal/telegram/handlers/command/getnextquestion"
+	"job-interviewer/internal/telegram/handlers/command/paysubscription"
 	"job-interviewer/internal/telegram/handlers/command/skipquestion"
 	"job-interviewer/internal/telegram/handlers/command/start"
 	"job-interviewer/internal/telegram/handlers/command/startinterview"
@@ -13,7 +15,9 @@ import (
 	"job-interviewer/internal/telegram/middleware/user"
 	tgService "job-interviewer/internal/telegram/service"
 	"job-interviewer/pkg/logger"
+	"job-interviewer/pkg/payments"
 	"job-interviewer/pkg/telegram"
+	"job-interviewer/pkg/variables"
 )
 
 type (
@@ -24,6 +28,8 @@ type (
 		GetNextQuestion     telegram.CommandHandler
 		SkipQuestion        telegram.CommandHandler
 		GetAnswerSuggestion telegram.CommandHandler
+		PaySubscription     telegram.CommandHandler
+		CheckPayment        telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
 
@@ -43,10 +49,13 @@ type (
 func NewConfiguration(
 	interviewerConfig *interviewer.Configuration,
 	logger logger.Logger,
+	paymentsService payments.Service,
+	variables variables.Repository,
 ) *Configuration {
 	service := tgService.NewService(
 		interviewerConfig.UseCases.FinishInterview,
 		interviewerConfig.UseCases.GetNextQuestion,
+		variables,
 	)
 
 	startInterviewHandler := startinterview.NewHandler(
@@ -74,6 +83,12 @@ func NewConfiguration(
 		SubscribeErrorHandler: errors.NewSubscribeErrorHandler(
 			service,
 			logger,
+		),
+		PaySubscription: paysubscription.NewHandler(
+			interviewerConfig.UseCases.Subscription,
+		),
+		CheckPayment: checkpayment.NewHandler(
+			paymentsService,
 		),
 	}
 

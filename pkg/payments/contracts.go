@@ -2,62 +2,47 @@ package payments
 
 import (
 	"context"
-	"errors"
 	"github.com/google/uuid"
-)
-
-var (
-	ErrHandlerAlreadyRegistered = errors.New("handler is already registered for this type")
-	ErrPaymentWrongStatus       = errors.New("payment has a wrong status for this action")
-	ErrPaymentNotFound          = errors.New("payment not found")
+	"job-interviewer/pkg/payments/model"
+	"job-interviewer/pkg/transactional"
 )
 
 type (
 	CreatePaymentIn struct {
 		IDK         uuid.UUID
 		UserID      uuid.UUID
-		Type        Type
+		Type        model.Type
 		Description string
-		Amount      Penny
+		Amount      model.Penny
 	}
 
 	HandlePaymentCompletedIn struct {
-		ExternalID ExternalID
-		Status     Status
+		ExternalID model.ExternalID
+		Status     model.Status
+	}
+
+	PaymentResult struct {
+		PaymentType model.Type
+		Paid        bool
 	}
 
 	Service interface {
-		CreatePayment(ctx context.Context, in *CreatePaymentIn) (*Payment, error)
+		CreatePayment(ctx context.Context, in *CreatePaymentIn) (*model.Payment, error)
 		CheckPendingPayment(ctx context.Context, userID uuid.UUID) error
+		CheckPendingPaymentWithResult(ctx context.Context, userID uuid.UUID) (*PaymentResult, error)
 
-		RegisterPaymentPaidHandler(paymentType Type, handler PaymentCompletedHandler) error
-		RegisterPaymentCanceledHandler(paymentType Type, handler PaymentCompletedHandler) error
+		RegisterPaymentPaidHandler(paymentType model.Type, handler PaymentCompletedHandler) error
+		RegisterPaymentCanceledHandler(paymentType model.Type, handler PaymentCompletedHandler) error
 	}
 
 	PaymentCompletedHandler interface {
 		Handle(ctx context.Context, userID uuid.UUID) error
 	}
 
-	GatewayCreatePaymentIn struct {
-		IDK         uuid.UUID
-		Description string
-		Amount      int64
-	}
-
-	GatewayCreatePaymentOut struct {
-		ExternalID  ExternalID
-		RedirectURl string
-	}
-
-	Gateway interface {
-		CreatePayment(ctx context.Context, in *GatewayCreatePaymentIn) (*GatewayCreatePaymentOut, error)
-		GetPaymentStatus(ctx context.Context, ID ExternalID) (*Status, error)
-	}
-
 	repository interface {
-		CreatePayment(ctx context.Context, in *NewPayment) error
-		UpdatePayment(ctx context.Context, in *Payment) error
-		GetPaymentByExternalID(ctx context.Context, ID ExternalID) (*Payment, error)
-		GetPendingPaymentByUserID(ctx context.Context, userID uuid.UUID) (*Payment, error)
+		CreatePayment(ctx context.Context, tx transactional.Tx, in *model.Payment) error
+		UpdatePayment(ctx context.Context, tx transactional.Tx, in *model.Payment) error
+		GetPaymentByExternalID(ctx context.Context, ID model.ExternalID) (*model.Payment, error)
+		GetActivePaymentByUserID(ctx context.Context, userID uuid.UUID) (*model.Payment, error)
 	}
 )

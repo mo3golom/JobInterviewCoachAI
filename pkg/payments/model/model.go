@@ -1,4 +1,4 @@
-package payments
+package model
 
 import "github.com/google/uuid"
 
@@ -16,23 +16,16 @@ type (
 
 	ExternalID string
 
-	NewPayment struct {
-		ID          uuid.UUID
-		UserID      uuid.UUID
-		Amount      Penny
-		Type        Type
-		Description string
-	}
-
 	Payment struct {
 		ID          uuid.UUID
-		ExternalID  ExternalID
 		UserID      uuid.UUID
 		Amount      Penny
 		Type        Type
 		Description string
-		RedirectURL string
 		Status      Status
+
+		ExternalID  *ExternalID
+		RedirectURL *string
 	}
 )
 

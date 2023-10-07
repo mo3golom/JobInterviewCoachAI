@@ -5,27 +5,33 @@ import (
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	job_interviewer "job-interviewer"
 	interviewerContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers"
+	"job-interviewer/internal/telegram/handlers/command"
 	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/keyboard"
+	"job-interviewer/pkg/variables"
 )
 
 type DefaultService struct {
 	finishInterviewUC interviewerContracts.FinishInterviewUseCase
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase
 	languageStorage   language.Storage
+	variables         variables.Repository
 }
 
 func NewService(
 	finishInterviewUC interviewerContracts.FinishInterviewUseCase,
 	getNextQuestionUC interviewerContracts.GetNextQuestionUseCase,
+	variables variables.Repository,
 ) *DefaultService {
 	return &DefaultService{
 		finishInterviewUC: finishInterviewUC,
 		getNextQuestionUC: getNextQuestionUC,
+		variables:         variables,
 		languageStorage:   configLanguage(),
 	}
 }
@@ -164,16 +170,29 @@ func (s *DefaultService) ShowSubscribeMessage(sender telegram.Sender) error {
 
 	inlineKeyboard, err := keyboard.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
-			Buttons: subscribeButtons,
+			Buttons: []keyboard.InlineButton{
+				{
+					Value: s.languageStorage.GetText(userLang, textKeyBuySubscription),
+					Data:  []string{command.PaySubscriptionCommand},
+					Type:  keyboard.ButtonData,
+				},
+			},
 		},
 	)
 	if err != nil {
 		return err
 	}
 
+	subscriptionPrice := s.variables.GetInt64(job_interviewer.MonthlySubscriptionPrice)
 	_, err = sender.Send(
 		model.NewResponse().
-			SetText(s.languageStorage.GetText(userLang, textKeySubscribe)).
+			SetText(
+				fmt.Sprintf(
+					s.languageStorage.GetText(userLang, textKeySubscribe),
+					subscriptionPrice,
+					textKeyBuySubscription,
+				),
+			).
 			SetInlineKeyboardMarkup(inlineKeyboard),
 	)
 	return err

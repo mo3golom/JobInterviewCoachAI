@@ -6,4 +6,6 @@ const (
 	GetNextQuestionCommand     = "/gt_nxt_qstn"
 	SkipQuestionCommand        = "/skp_qstn"
 	GetAnswerSuggestionCommand = "/gt_nswr_sug"
+	PaySubscriptionCommand     = "/p_sbs"
+	CheckPaymentCommand        = "/chck_p"
 )

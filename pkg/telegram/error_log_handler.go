@@ -26,7 +26,7 @@ func (e *ErrorLogHandler) Handle(_ context.Context, err error, request *model.Re
 	_, _ = sender.Send(
 		model.
 			NewResponse().
-			SetText("Something went wrong :("),
+			SetText("Что-то пошло не так :("),
 	)
 
 	return true

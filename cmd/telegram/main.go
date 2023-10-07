@@ -9,6 +9,7 @@ import (
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/telegram"
+	"job-interviewer/pkg/payments"
 	"job-interviewer/pkg/subscription"
 	telegramPkg "job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/transactional"
@@ -17,7 +18,6 @@ import (
 )
 
 func main() {
-
 	ctx := context.Background()
 	if _, err := os.Stat(".env"); err == nil {
 		// path/to/whatever exists
@@ -48,16 +48,21 @@ func main() {
 	tgPkg := tgPkgConfig.Gateway
 
 	subscriptionService := subscription.NewSubscriptionService(db)
+	paymentsService := payments.NewPaymentsService(db, variables.Repository.MustGet(), template)
 
 	interviewerConfig := interviewer.NewConfiguration(
 		db,
 		template,
 		gptGateway,
 		subscriptionService,
+		paymentsService,
+		variables.Repository.MustGet(),
 	)
 	telegramConfig := telegram.NewConfiguration(
 		interviewerConfig,
 		log,
+		paymentsService,
+		variables.Repository.MustGet(),
 	)
 
 	// REGISTER MIDDLEWARE
@@ -70,6 +75,8 @@ func main() {
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.SkipQuestion)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetAnswerSuggestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PaySubscription)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.CheckPayment)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)

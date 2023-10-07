@@ -3,7 +3,7 @@ package telegram
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"job-interviewer/pkg/logger"
-	"os"
+	"job-interviewer/pkg/variables"
 )
 
 type Configuration struct {
@@ -16,11 +16,11 @@ func NewConfiguration(log logger.Logger, token string) *Configuration {
 		panic(err)
 	}
 
-	if os.Getenv("ENV") != "prod" {
+	if variables.AppEnvironment() != variables.EnvironmentProd {
 		bot.Debug = true
 	}
 
 	return &Configuration{
-		Gateway: NewGateway(bot, log),
+		Gateway: NewGateway(bot, log, token),
 	}
 }

@@ -4,137 +4,203 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	job_interviewer "job-interviewer"
 	"job-interviewer/pkg/helper"
+	"job-interviewer/pkg/payments/gateway"
+	"job-interviewer/pkg/payments/gateway/ym"
+	"job-interviewer/pkg/payments/model"
+	"job-interviewer/pkg/transactional"
+	"job-interviewer/pkg/variables"
+	"net/http"
 )
 
-type DefaultService struct {
-	repository repository
-	gateway    Gateway
+type (
+	paymentCompletedHandlerItem struct {
+		paymentType model.Type
+		handler     PaymentCompletedHandler
+	}
 
-	paidHandler     map[Type]PaymentCompletedHandler
-	canceledHandler map[Type]PaymentCompletedHandler
+	DefaultService struct {
+		repository            repository
+		gateway               gateway.Gateway
+		transactionalTemplate transactional.Template
+
+		paidHandler     []paymentCompletedHandlerItem
+		canceledHandler []paymentCompletedHandlerItem
+	}
+)
+
+func NewPaymentsService(
+	db *sqlx.DB,
+	variables variables.Repository,
+	transactionalTemplate transactional.Template,
+) *DefaultService {
+	return &DefaultService{
+		transactionalTemplate: transactionalTemplate,
+		repository: &DefaultRepository{
+			db: db,
+		},
+		gateway: ym.NewYMGateway(
+			variables.GetInt64(job_interviewer.YMShopID),
+			variables.GetString(job_interviewer.YMSecretKey),
+			&http.Client{},
+		),
+	}
 }
 
-func (s *DefaultService) CreatePayment(ctx context.Context, in *CreatePaymentIn) (*Payment, error) {
-	existedPayment, err := s.repository.GetPendingPaymentByUserID(ctx, in.UserID)
-	if err != nil && !errors.Is(err, ErrPaymentNotFound) {
-		return nil, err
-	}
-	if existedPayment != nil {
-		return existedPayment, nil
-	}
-
-	newPayment := &NewPayment{
-		ID:          uuid.New(),
-		UserID:      in.UserID,
-		Amount:      in.Amount,
-		Type:        in.Type,
-		Description: in.Description,
-	}
-	err = s.repository.CreatePayment(
-		ctx,
-		newPayment,
-	)
-	if err != nil {
+func (s *DefaultService) CreatePayment(ctx context.Context, in *CreatePaymentIn) (*model.Payment, error) {
+	existedPayment, err := s.repository.GetActivePaymentByUserID(ctx, in.UserID)
+	if err != nil && !errors.Is(err, model.ErrPaymentNotFound) {
 		return nil, err
 	}
 
-	result, err := s.gateway.CreatePayment(
-		ctx,
-		&GatewayCreatePaymentIn{
-			IDK:         in.IDK,
-			Description: newPayment.Description,
-			Amount:      newPayment.Amount.Normalize(),
-		},
-	)
-	if err != nil {
-		return nil, err
+	if existedPayment == nil {
+		existedPayment = &model.Payment{
+			ID:          uuid.New(),
+			UserID:      in.UserID,
+			Amount:      in.Amount,
+			Type:        in.Type,
+			Description: in.Description,
+		}
+		err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+			return s.repository.CreatePayment(ctx, tx, existedPayment)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	payment := &Payment{
-		ID:          newPayment.ID,
-		ExternalID:  result.ExternalID,
-		Amount:      newPayment.Amount,
-		Type:        newPayment.Type,
-		Description: newPayment.Description,
-		RedirectURL: result.RedirectURl,
-		Status:      StatusPending,
-	}
-	err = s.repository.UpdatePayment(ctx, payment)
-	if err != nil {
-		return nil, err
+	if existedPayment.ExternalID == nil {
+		result, err := s.gateway.CreatePayment(
+			ctx,
+			&gateway.CreatePaymentIn{
+				IDK:         in.IDK,
+				Description: existedPayment.Description,
+				Amount:      existedPayment.Amount.Normalize(),
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		payment := &model.Payment{
+			ID:          existedPayment.ID,
+			Amount:      existedPayment.Amount,
+			Type:        existedPayment.Type,
+			Description: existedPayment.Description,
+			Status:      model.StatusPending,
+
+			ExternalID:  &result.ExternalID,
+			RedirectURL: &result.RedirectURl,
+		}
+		err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+			return s.repository.UpdatePayment(ctx, tx, payment)
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return payment, nil
 	}
 
-	return payment, nil
+	return existedPayment, nil
 }
 
 func (s *DefaultService) CheckPendingPayment(ctx context.Context, userID uuid.UUID) error {
-	payment, err := s.repository.GetPendingPaymentByUserID(ctx, userID)
-	if errors.Is(err, ErrPaymentNotFound) {
-		return nil
+	_, err := s.CheckPendingPaymentWithResult(ctx, userID)
+	return err
+}
+
+func (s *DefaultService) CheckPendingPaymentWithResult(ctx context.Context, userID uuid.UUID) (*PaymentResult, error) {
+	result := &PaymentResult{}
+
+	payment, err := s.repository.GetActivePaymentByUserID(ctx, userID)
+	if errors.Is(err, model.ErrPaymentNotFound) {
+		return result, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	paymentStatus, err := s.gateway.GetPaymentStatus(ctx, payment.ExternalID)
+	result.PaymentType = payment.Type
+	if payment.ExternalID == nil {
+		return result, nil
+	}
+	paymentStatus, err := s.gateway.GetPaymentStatus(ctx, *payment.ExternalID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if payment.Status == *paymentStatus {
-		return nil
+		return result, nil
 	}
 
 	payment.Status = *paymentStatus
-	err = s.repository.UpdatePayment(ctx, payment)
+	err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
+		return s.repository.UpdatePayment(ctx, tx, payment)
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return s.handlePaymentStatus(ctx, payment)
+	err = s.handlePaymentStatus(ctx, payment)
+	if err != nil {
+		return nil, err
+	}
+
+	result.Paid = *paymentStatus == model.StatusPaid
+	return result, nil
 }
 
-func (s *DefaultService) handlePaymentStatus(ctx context.Context, payment *Payment) error {
+func (s *DefaultService) handlePaymentStatus(ctx context.Context, payment *model.Payment) error {
 	switch payment.Status {
-	case StatusPaid:
-		handler, ok := s.paidHandler[payment.Type]
-		if !ok {
-			return nil
-		}
+	case model.StatusPaid:
+		for _, item := range s.paidHandler {
+			if item.paymentType != payment.Type {
+				continue
+			}
 
-		return handler.Handle(ctx, payment.UserID)
-	case StatusCanceled:
-		handler, ok := s.canceledHandler[payment.Type]
-		if !ok {
-			return nil
-		}
+			err := item.handler.Handle(ctx, payment.UserID)
+			if err == nil {
+				continue
+			}
 
-		return handler.Handle(ctx, payment.UserID)
+			return err
+		}
+	case model.StatusCanceled:
+		for _, item := range s.canceledHandler {
+			if item.paymentType != payment.Type {
+				continue
+			}
+
+			err := item.handler.Handle(ctx, payment.UserID)
+			if err == nil {
+				continue
+			}
+
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (s *DefaultService) RegisterPaymentPaidHandler(paymentType Type, handler PaymentCompletedHandler) error {
-	_, ok := s.paidHandler[paymentType]
-	if ok {
-		return ErrHandlerAlreadyRegistered
-	}
-
-	handlers := helper.CopyMap[Type, PaymentCompletedHandler](s.paidHandler)
-	handlers[paymentType] = handler
+func (s *DefaultService) RegisterPaymentPaidHandler(paymentType model.Type, handler PaymentCompletedHandler) error {
+	handlers := helper.CopySlice(s.paidHandler)
+	handlers = append(handlers, paymentCompletedHandlerItem{
+		paymentType: paymentType,
+		handler:     handler,
+	})
 	s.paidHandler = handlers
 	return nil
 }
 
-func (s *DefaultService) RegisterPaymentCanceledHandler(paymentType Type, handler PaymentCompletedHandler) error {
-	_, ok := s.canceledHandler[paymentType]
-	if ok {
-		return ErrHandlerAlreadyRegistered
-	}
-
-	handlers := helper.CopyMap[Type, PaymentCompletedHandler](s.canceledHandler)
-	handlers[paymentType] = handler
-	s.canceledHandler = handlers
+func (s *DefaultService) RegisterPaymentCanceledHandler(paymentType model.Type, handler PaymentCompletedHandler) error {
+	handlers := helper.CopySlice(s.canceledHandler)
+	handlers = append(handlers, paymentCompletedHandlerItem{
+		paymentType: paymentType,
+		handler:     handler,
+	})
+	s.paidHandler = handlers
 	return nil
 }
