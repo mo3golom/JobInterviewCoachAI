@@ -59,7 +59,16 @@ func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, in *contracts.T
 			return err
 		}
 
-		return u.userStorage.CreateTelegramToUser(ctx, tx, in.ID, originalUser.ID)
+		return u.userStorage.CreateTelegramToUser(
+			ctx,
+			tx,
+			user.TelegramUser{
+				TelegramID: in.ID,
+				Username:   in.Username,
+				FirstName:  in.FirstName,
+				LatName:    in.LastName,
+			},
+			originalUser.ID)
 	})
 	if err != nil {
 		return nil, err

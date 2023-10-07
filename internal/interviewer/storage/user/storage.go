@@ -17,6 +17,9 @@ type sqlxUser struct {
 type sqlxTelegramUser struct {
 	UserID     uuid.UUID `db:"user_id"`
 	TelegramID int64     `db:"telegram_id"`
+	Username   string    `db:"username"`
+	Firstname  string    `db:"first_name"`
+	LastName   string    `db:"last_name"`
 }
 
 type DefaultStorage struct {
@@ -46,11 +49,11 @@ func (s *DefaultStorage) CreateUser(ctx context.Context, tx transactional.Tx, us
 	return err
 }
 
-func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactional.Tx, telegramID int64, userID uuid.UUID) error {
+func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactional.Tx, in TelegramUser, userID uuid.UUID) error {
 	const query = `
 		INSERT 
-		INTO user_telegram (user_id, telegram_id) 
-		VALUES (:user_id, :telegram_id)
+		INTO user_telegram (user_id, telegram_id, username, first_name, last_name) 
+		VALUES (:user_id, :telegram_id, :username, :first_name, :last_name)
 		ON CONFLICT DO NOTHING 
     `
 
@@ -59,7 +62,10 @@ func (s *DefaultStorage) CreateTelegramToUser(ctx context.Context, tx transactio
 		query,
 		sqlxTelegramUser{
 			UserID:     userID,
-			TelegramID: telegramID,
+			TelegramID: in.TelegramID,
+			Username:   in.Username,
+			Firstname:  in.FirstName,
+			LastName:   in.LatName,
 		},
 	)
 	return err

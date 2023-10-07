@@ -20,8 +20,11 @@ func (m *Middleware) Handle(ctx context.Context, request *tgModel.Request) error
 	user, err := m.userUC.CreateOrGetUserToTelegram(
 		ctx,
 		&contracts.TgUserIn{
-			ID:   request.User.ID,
-			Lang: request.User.Lang,
+			ID:        request.User.ID,
+			Lang:      request.User.Lang,
+			Username:  request.User.Username,
+			FirstName: request.User.FirstName,
+			LastName:  request.User.LastName,
 		},
 	)
 	if err != nil {
