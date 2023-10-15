@@ -14,7 +14,7 @@ var (
 type (
 	CreateInterviewIn struct {
 		UserID         uuid.UUID
-		JobPosition    string
+		JobPosition    model.Position
 		QuestionsCount int64
 	}
 

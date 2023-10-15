@@ -3,6 +3,7 @@ package contracts
 import (
 	"context"
 	"github.com/google/uuid"
+	"job-interviewer/internal/interviewer/model"
 )
 
 type (
@@ -12,7 +13,7 @@ type (
 	}
 
 	StartInterviewQuestionsIn struct {
-		JobPosition string
+		JobPosition model.Position
 	}
 
 	StartInterviewUseCase interface {

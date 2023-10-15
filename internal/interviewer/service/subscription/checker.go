@@ -10,8 +10,9 @@ import (
 )
 
 type freeNextQuestionChecker struct {
-	messagesStorage messages.Storage
-	userID          uuid.UUID
+	messagesStorage    messages.Storage
+	userID             uuid.UUID
+	freeQuestionsCount int64
 }
 
 func (f *freeNextQuestionChecker) Check(ctx context.Context) (*subscription.IsAvailableOut, error) {
@@ -20,7 +21,7 @@ func (f *freeNextQuestionChecker) Check(ctx context.Context) (*subscription.IsAv
 		return nil, err
 	}
 
-	questionsCount := 0
+	var questionsCount int64
 	for _, message := range messagesFromActiveInterview {
 		if message.Role == model.RoleUser {
 			continue
@@ -30,7 +31,7 @@ func (f *freeNextQuestionChecker) Check(ctx context.Context) (*subscription.IsAv
 	}
 
 	return &subscription.IsAvailableOut{
-		Result: questionsCount < defaultFreeQuestions,
+		Result: questionsCount < f.freeQuestionsCount,
 		Reason: contracts.ErrQuestionsInFreePlanHaveExpired,
 	}, nil
 }

@@ -52,7 +52,7 @@ func NewConfiguration(
 	userStorage := user.NewStorage(db)
 	messagesStorage := messages.NewStorage(db)
 
-	subscriptionService := subscription.NewService(externalSubscriptionService, messagesStorage)
+	subscriptionService := subscription.NewService(externalSubscriptionService, messagesStorage, variables)
 	interviewService := interview2.NewInterviewService(gptGateway, interviewStorage, messagesStorage, transactionalTemplate, subscriptionService)
 	interviewFlow := flow.NewDefaultInterviewFlow(interviewService)
 	paymentsService, err := payments.NewDefaultService(

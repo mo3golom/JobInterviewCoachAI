@@ -110,7 +110,7 @@ func (w *DefaultInterviewFlow) StartInterviewImpl(ctx context.Context, in state.
 		ctx,
 		interview.CreateInterviewIn{
 			UserID:         in.UserID,
-			JobPosition:    in.JobPosition,
+			JobPosition:    model.Position(in.JobPosition),
 			QuestionsCount: 0,
 		},
 	)

@@ -108,7 +108,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, interview *model.I
 		result, err := s.gpt.SummarizeAnswersComments(
 			ctx,
 			history,
-			interview.JobInfo.Position,
+			string(interview.JobInfo.Position),
 		)
 		if err != nil {
 			return "", err
@@ -153,7 +153,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.I
 	}
 
 	if len(history) == 0 {
-		result, err := s.gpt.StartDialogue(ctx, interview.JobInfo.Position)
+		result, err := s.gpt.StartDialogue(ctx, string(interview.JobInfo.Position))
 		if err != nil {
 			return nil, err
 		}
@@ -184,7 +184,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.I
 		}, nil
 	}
 
-	result, err := s.gpt.ContinueDialogue(ctx, history, interview.JobInfo.Position)
+	result, err := s.gpt.ContinueDialogue(ctx, history, string(interview.JobInfo.Position))
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (s *DefaultService) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) er
 		},
 	)
 
-	result, err := s.gpt.ContinueDialogue(ctx, history, in.Interview.JobInfo.Position)
+	result, err := s.gpt.ContinueDialogue(ctx, history, string(in.Interview.JobInfo.Position))
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func (s *DefaultService) GetAnswerSuggestion(ctx context.Context, interview *mod
 		return nil, contracts.ErrInterviewQuestionsIsEmpty
 	}
 
-	result, err := s.gpt.GetAnswerSuggestion(ctx, history, interview.JobInfo.Position)
+	result, err := s.gpt.GetAnswerSuggestion(ctx, history, string(interview.JobInfo.Position))
 	if err != nil {
 		return nil, err
 	}

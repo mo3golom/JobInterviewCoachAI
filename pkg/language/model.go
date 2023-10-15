@@ -8,5 +8,5 @@ const (
 type (
 	Language int64
 
-	TextKey int64
+	TextKey string
 )

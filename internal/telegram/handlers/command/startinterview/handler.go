@@ -11,6 +11,8 @@ import (
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
 	"job-interviewer/pkg/telegram/service/survey"
+	"sort"
+	"strconv"
 )
 
 type Handler struct {
@@ -35,7 +37,7 @@ func NewHandler(
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
 	userLang := language.Russian
-	var jobPosition string
+	var jobPositionMainKey, jobPositionSubKey string
 	var skipActiveInterview, skipActiveInterviewAnswered bool
 	newSurvey := survey.New()
 
@@ -48,30 +50,78 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		newSurvey = newSurvey.AddQuestion(
 			survey.NewQuestion(
 				fmt.Sprintf(
-					h.languageStorage.GetText(userLang, language.TextKey(QuestionContinueActiveInterview)),
+					h.languageStorage.GetText(userLang, language.TextKey(strconv.FormatInt(QuestionContinueActiveInterview, 10))),
 					activeInterview.JobInfo.Position,
 				),
 				func(answer bool) {
 					skipActiveInterview = !answer
 					skipActiveInterviewAnswered = true
 				},
-				survey.NewComplexPossibleAnswer("Да", true),
-				survey.NewComplexPossibleAnswer("Нет", false),
+				survey.NewComplexPossibleAnswer(h.languageStorage.GetText(userLang, textKeyYes), true),
+				survey.NewComplexPossibleAnswer(h.languageStorage.GetText(userLang, textKeyNo), false),
 			),
 		)
 	}
 
-	activeQuestion, err := newSurvey.AddQuestion(
+	interviewAvailableValues := h.getInterviewUC.GetAvailableValues()
+	newSurvey = newSurvey.AddQuestion(
 		survey.NewQuestion(
-			h.languageStorage.GetText(userLang, language.TextKey(QuestionJobPosition)),
+			h.languageStorage.GetText(userLang, language.TextKey(strconv.FormatInt(QuestionJobPosition, 10))),
 			func(answer string) {
-				jobPosition = answer
+				jobPositionMainKey = answer
 			},
-			survey.NewPossibleAnswer("golang developer"),
-			survey.NewPossibleAnswer("python developer"),
-			survey.NewPossibleAnswer("php developer"),
+			func() []survey.PossibleAnswer[string] {
+				possibleAnswers := make([]survey.PossibleAnswer[string], 0, len(interviewAvailableValues.Nodes))
+				for key := range interviewAvailableValues.Nodes {
+					possibleAnswers = append(
+						possibleAnswers,
+						survey.NewComplexPossibleAnswer(
+							h.languageStorage.GetText(userLang, language.TextKey(key)),
+							key,
+						),
+					)
+				}
+				sort.Slice(possibleAnswers, func(i, j int) bool {
+					return possibleAnswers[i].GetContent() > possibleAnswers[j].GetContent()
+				})
+
+				return possibleAnswers
+			}()...,
 		),
-	).
+	).SetAnswers(request.Data)
+
+	if mainPosition, ok := interviewAvailableValues.Nodes[jobPositionMainKey]; ok && len(mainPosition.Children) > 0 {
+		newSurvey = newSurvey.AddQuestion(
+			survey.NewQuestion(
+				fmt.Sprintf(
+					h.languageStorage.GetText(userLang, textKeyClarifyJobPosition),
+					h.languageStorage.GetText(userLang, language.TextKey(jobPositionMainKey)),
+				),
+				func(answer string) {
+					jobPositionSubKey = answer
+				},
+				func() []survey.PossibleAnswer[string] {
+					possibleAnswers := make([]survey.PossibleAnswer[string], 0, len(mainPosition.Children))
+					for key := range mainPosition.Children {
+						possibleAnswers = append(
+							possibleAnswers,
+							survey.NewComplexPossibleAnswer(
+								h.languageStorage.GetText(userLang, language.TextKey(key)),
+								key,
+							),
+						)
+					}
+					sort.Slice(possibleAnswers, func(i, j int) bool {
+						return possibleAnswers[i].GetContent() > possibleAnswers[j].GetContent()
+					})
+
+					return possibleAnswers
+				}()...,
+			),
+		)
+	}
+
+	activeQuestion, err := newSurvey.
 		SetAnswers(request.Data).
 		FindUnansweredQuestionAsKeyboard(h.Command())
 	if err != nil {
@@ -94,6 +144,11 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 				SetInlineKeyboardMarkup(activeQuestion.Keyboard),
 		)
 		return err
+	}
+
+	jobPosition := interviewAvailableValues.Nodes[jobPositionMainKey].Position
+	if jobPositionSubKey != "" && len(interviewAvailableValues.Nodes[jobPositionMainKey].Children) > 0 {
+		jobPosition = interviewAvailableValues.Nodes[jobPositionMainKey].Children[jobPositionSubKey].Position
 	}
 
 	err = h.startInterviewUC.StartInterview(

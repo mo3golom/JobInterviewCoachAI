@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	textKeyStart language.TextKey = iota
+	textKeyStart language.TextKey = "textKeyStart"
 )
 
 func configLanguage() language.Storage {

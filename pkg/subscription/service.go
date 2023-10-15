@@ -9,19 +9,18 @@ import (
 	"time"
 )
 
-const (
-	defaultFreeAttempts = 10
-)
-
 type DefaultService struct {
-	storage storage
+	storage           storage
+	freeAttemptsCount int64
 }
 
 func NewSubscriptionService(
 	db *sqlx.DB,
+	freeAttemptsCount int64,
 ) Service {
 	return &DefaultService{
-		storage: &defaultStorage{db: db},
+		storage:           &defaultStorage{db: db},
+		freeAttemptsCount: freeAttemptsCount,
 	}
 }
 
@@ -31,7 +30,7 @@ func (d *DefaultService) CreateUser(ctx context.Context, tx transactional.Tx, us
 		tx,
 		userID,
 		UserTypeFree,
-		defaultFreeAttempts,
+		d.freeAttemptsCount,
 	)
 }
 

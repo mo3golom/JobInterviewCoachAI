@@ -166,6 +166,10 @@ func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.R
 }
 
 func (s *DefaultService) ShowSubscribeMessage(sender telegram.Sender) error {
+	if !s.variables.GetBool(job_interviewer.PaidModelEnable) {
+		return nil
+	}
+
 	userLang := language.Russian
 
 	inlineKeyboard, err := keyboard.BuildInlineKeyboardGrid(

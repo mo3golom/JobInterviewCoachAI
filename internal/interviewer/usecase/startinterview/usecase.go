@@ -40,7 +40,7 @@ func (u *UseCase) StartInterview(ctx context.Context, in contracts.StartIntervie
 		ctx,
 		flow.StartInterviewIn{
 			UserID:      in.UserID,
-			JobPosition: in.Questions.JobPosition,
+			JobPosition: string(in.Questions.JobPosition),
 		},
 	)
 }

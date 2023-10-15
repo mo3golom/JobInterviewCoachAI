@@ -5,13 +5,13 @@ import (
 )
 
 const (
-	textKeyNotFoundActiveInterview language.TextKey = iota
-	textKeyStartInterview
-	textKeyFinishInterview
-	textKeyFreeQuestionsIsEnd
-	textKeySubscriptionHasExpired
-	textKeySubscribe
-	textKeyBuySubscription
+	textKeyNotFoundActiveInterview language.TextKey = "textKeyNotFoundActiveInterview"
+	textKeyStartInterview          language.TextKey = "textKeyStartInterview"
+	textKeyFinishInterview         language.TextKey = "textKeyFinishInterview"
+	textKeyFreeQuestionsIsEnd      language.TextKey = "textKeyFreeQuestionsIsEnd"
+	textKeySubscriptionHasExpired  language.TextKey = "textKeySubscriptionHasExpired"
+	textKeySubscribe               language.TextKey = "textKeySubscribe"
+	textKeyBuySubscription         language.TextKey = "textKeyBuySubscription"
 )
 
 func configLanguage() language.Storage {

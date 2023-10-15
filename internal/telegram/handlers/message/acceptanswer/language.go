@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	textKeyProcessingAnswer language.TextKey = iota
-	textKeyVoiceMessageIsUnsupported
+	textKeyProcessingAnswer          language.TextKey = "textKeyProcessingAnswer"
+	textKeyVoiceMessageIsUnsupported language.TextKey = "textKeyVoiceMessageIsUnsupported"
 )
 
 func configLanguage() language.Storage {

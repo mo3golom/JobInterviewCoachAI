@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	textKeyPaymentSuccess language.TextKey = iota
+	textKeyPaymentSuccess language.TextKey = "textKeyPaymentSuccess"
 )
 
 func configLanguage() language.Storage {

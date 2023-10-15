@@ -22,10 +22,10 @@ type (
 	}
 )
 
-func NewPossibleAnswer[T string](content string) PossibleAnswer[T] {
-	answer := PossibleAnswer[T]{
+func NewPossibleAnswer(content string) PossibleAnswer[string] {
+	answer := PossibleAnswer[string]{
 		content: content,
-		value:   T(content),
+		value:   content,
 	}
 
 	return answer
@@ -46,14 +46,13 @@ func NewComplexPossibleAnswer[T comparable](content string, value ...T) Possible
 func NewQuestion[T comparable](
 	question string,
 	setAnswerFunc func(answer T),
-	possibleAnswer PossibleAnswer[T],
 	possibleAnswers ...PossibleAnswer[T],
 ) Question {
 	answers := make([]PossibleAnswer[T], 0, 1+len(possibleAnswers))
-	answers = append(answers, possibleAnswer)
-
 	if len(possibleAnswers) > 0 {
 		answers = append(answers, possibleAnswers...)
+	} else {
+		panic("question should have one or more answers!")
 	}
 
 	return DefaultQuestion[T]{
@@ -108,4 +107,8 @@ func (q DefaultQuestion[T]) setAnswer(answerID int) Question {
 	q.setAnswerFunc(q.possibleAnswers[answerID].value)
 
 	return q
+}
+
+func (p PossibleAnswer[T]) GetContent() string {
+	return p.content
 }

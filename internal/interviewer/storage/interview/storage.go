@@ -39,7 +39,7 @@ func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.T
 		UserID:        interview.UserID,
 		Status:        string(interview.Status),
 		QuestionCount: interview.QuestionsCount,
-		JobPosition:   interview.JobInfo.Position,
+		JobPosition:   string(interview.JobInfo.Position),
 		JobLevel:      "unknown",
 	}
 	_, err := tx.NamedExecContext(ctx, query, in)
@@ -111,7 +111,7 @@ func convertInterview(in *sqlxInterview) *model.Interview {
 		UserID: in.UserID,
 		Status: model.InterviewStatus(in.Status),
 		JobInfo: model.JobInfo{
-			Position: in.JobPosition,
+			Position: model.Position(in.JobPosition),
 		},
 		QuestionsCount: in.QuestionCount,
 		State:          model.InterviewState(in.State),

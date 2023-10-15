@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	textKeyPayStart language.TextKey = iota
-	textKeyPayRedirectURL
-	textKeyPay
-	textKeyCheckPayment
+	textKeyPayStart       language.TextKey = "textKeyPayStart"
+	textKeyPayRedirectURL language.TextKey = "textKeyPayRedirectURL"
+	textKeyPay            language.TextKey = "textKeyPay"
+	textKeyCheckPayment   language.TextKey = "textKeyCheckPayment"
 )
 
 func configLanguage() language.Storage {

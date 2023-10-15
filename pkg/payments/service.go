@@ -5,13 +5,11 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	job_interviewer "job-interviewer"
 	"job-interviewer/pkg/helper"
 	"job-interviewer/pkg/payments/gateway"
 	"job-interviewer/pkg/payments/gateway/ym"
 	"job-interviewer/pkg/payments/model"
 	"job-interviewer/pkg/transactional"
-	"job-interviewer/pkg/variables"
 	"net/http"
 )
 
@@ -33,8 +31,9 @@ type (
 
 func NewPaymentsService(
 	db *sqlx.DB,
-	variables variables.Repository,
 	transactionalTemplate transactional.Template,
+	YMShopID int64,
+	YMSecretKey string,
 ) *DefaultService {
 	return &DefaultService{
 		transactionalTemplate: transactionalTemplate,
@@ -42,8 +41,8 @@ func NewPaymentsService(
 			db: db,
 		},
 		gateway: ym.NewYMGateway(
-			variables.GetInt64(job_interviewer.YMShopID),
-			variables.GetString(job_interviewer.YMSecretKey),
+			YMShopID,
+			YMSecretKey,
 			&http.Client{},
 		),
 	}

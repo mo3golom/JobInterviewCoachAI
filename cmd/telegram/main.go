@@ -47,8 +47,16 @@ func main() {
 	)
 	tgPkg := tgPkgConfig.Gateway
 
-	subscriptionService := subscription.NewSubscriptionService(db)
-	paymentsService := payments.NewPaymentsService(db, variables.Repository.MustGet(), template)
+	subscriptionService := subscription.NewSubscriptionService(
+		db,
+		variables.Repository.MustGet().GetInt64(jobinterviewer.FreeInterviewsCount),
+	)
+	paymentsService := payments.NewPaymentsService(
+		db,
+		template,
+		variables.Repository.MustGet().GetInt64(jobinterviewer.YMShopID),
+		variables.Repository.MustGet().GetString(jobinterviewer.YMSecretKey),
+	)
 
 	interviewerConfig := interviewer.NewConfiguration(
 		db,

@@ -1,7 +1,9 @@
 package model
 
 type (
+	Position string
+
 	JobInfo struct {
-		Position string
+		Position Position
 	}
 )
