@@ -13,4 +13,7 @@ var (
 	PaidModelEnable          = variables.Environment[bool]("PAID_MODEL_ENABLE", true)
 	FreeQuestionsCount       = variables.Environment[string]("FREE_QUESTIONS_COUNT", "5")
 	FreeInterviewsCount      = variables.Environment[string]("FREE_INTERVIEWS_COUNT", "10")
+	GPTServiceType           = variables.Environment[string]("GPT_SERVICE_TYPE", "openai")
+	VseGPTBaseUrl            = variables.Environment[string]("VSE_GPT_BASE_URL", "")
+	VseGPTApiKey             = variables.Environment[string]("VSE_GPT_API_KEY", "")
 )

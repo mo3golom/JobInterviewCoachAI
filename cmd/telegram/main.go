@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"github.com/joho/godotenv"
-	"github.com/sashabaranov/go-openai"
 	jobinterviewer "job-interviewer"
 	"job-interviewer/cmd"
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/telegram"
+	go_openai "job-interviewer/pkg/go-openai"
 	"job-interviewer/pkg/payments"
 	"job-interviewer/pkg/subscription"
 	telegramPkg "job-interviewer/pkg/telegram"
@@ -36,9 +36,16 @@ func main() {
 		panic(err)
 	}
 
-	c := openai.NewClient(
-		variables.Repository.MustGet().GetString(jobinterviewer.GPTApiKey),
-	)
+	c := go_openai.NewClient(go_openai.Config{
+		ServiceType: go_openai.ServiceType(variables.Repository.MustGet().GetString(jobinterviewer.GPTServiceType)),
+		OpenAI: &go_openai.OpenAIConfig{
+			AuthToken: variables.Repository.MustGet().GetString(jobinterviewer.GPTApiKey),
+		},
+		VseGPT: &go_openai.VseGPTConfig{
+			AuthToken: variables.Repository.MustGet().GetString(jobinterviewer.VseGPTApiKey),
+			BaseUrl:   variables.Repository.MustGet().GetString(jobinterviewer.VseGPTBaseUrl),
+		},
+	})
 	gptGateway := gpt.NewGateway(c)
 
 	tgPkgConfig := telegramPkg.NewConfiguration(
