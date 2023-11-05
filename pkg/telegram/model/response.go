@@ -11,8 +11,13 @@ type (
 	}
 )
 
-func NewResponse(chatID int64) Response {
-	return Response{chatID: chatID}
+func NewResponse() Response {
+	return Response{}
+}
+
+func (r Response) SetChatID(chatID int64) Response {
+	r.chatID = chatID
+	return r
 }
 
 func (r Response) SetText(value string) Response {

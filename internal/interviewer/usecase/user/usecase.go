@@ -8,18 +8,25 @@ import (
 	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/internal/interviewer/storage/user"
 	"job-interviewer/pkg/language"
+	"job-interviewer/pkg/subscription"
 	"job-interviewer/pkg/transactional"
 )
 
 type UseCase struct {
 	userStorage           user.Storage
 	transactionalTemplate transactional.Template
+	subscription          subscription.Service
 }
 
-func NewUseCase(u user.Storage, t transactional.Template) *UseCase {
+func NewUseCase(
+	u user.Storage,
+	t transactional.Template,
+	subscription subscription.Service,
+) *UseCase {
 	return &UseCase{
 		userStorage:           u,
 		transactionalTemplate: t,
+		subscription:          subscription,
 	}
 }
 
@@ -27,10 +34,11 @@ func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, in *contracts.T
 	var originalUser *model.User
 
 	err := u.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-		existed, err := u.userStorage.FindUserIDByTelegramID(ctx, tx, in.ID)
+		existed, err := u.userStorage.FindUserByTelegramID(ctx, tx, in.ID)
 		if existed != nil {
 			originalUser = existed
-			return nil
+
+			return u.subscription.CreateUser(ctx, tx, originalUser.ID)
 		}
 
 		if err != nil && !errors.Is(err, user.ErrEmptyUserResult) {
@@ -46,7 +54,21 @@ func (u *UseCase) CreateOrGetUserToTelegram(ctx context.Context, in *contracts.T
 			return err
 		}
 
-		return u.userStorage.CreateTelegramToUser(ctx, tx, in.ID, originalUser.ID)
+		err = u.subscription.CreateUser(ctx, tx, originalUser.ID)
+		if err != nil {
+			return err
+		}
+
+		return u.userStorage.CreateTelegramToUser(
+			ctx,
+			tx,
+			user.TelegramUser{
+				TelegramID: in.ID,
+				Username:   in.Username,
+				FirstName:  in.FirstName,
+				LatName:    in.LastName,
+			},
+			originalUser.ID)
 	})
 	if err != nil {
 		return nil, err

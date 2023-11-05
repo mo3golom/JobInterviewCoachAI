@@ -14,13 +14,13 @@ var (
 type (
 	CreateInterviewIn struct {
 		UserID         uuid.UUID
-		JobPosition    string
+		JobPosition    model.Position
 		QuestionsCount int64
 	}
 
 	AcceptAnswerIn struct {
-		UserID uuid.UUID
-		Answer string
+		Interview *model.Interview
+		Answer    string
 	}
 
 	Service interface {
@@ -29,6 +29,9 @@ type (
 		FinishInterview(ctx context.Context, interview *model.Interview) (string, error)
 		FinishInterviewWithoutSummary(ctx context.Context, interview *model.Interview) error
 		FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error)
-		AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error)
+		GetNextQuestion(ctx context.Context, interview *model.Interview) (*model.Question, error)
+		AcceptAnswer(ctx context.Context, in AcceptAnswerIn) error
+		UpdateInterviewState(ctx context.Context, interviewID uuid.UUID, state model.InterviewState) error
+		GetAnswerSuggestion(ctx context.Context, interview *model.Interview) (*model.AnswerSuggestion, error)
 	}
 )

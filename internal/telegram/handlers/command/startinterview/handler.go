@@ -2,121 +2,162 @@ package startinterview
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	interviewContracts "job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/telegram/handlers/command"
-	languageService "job-interviewer/internal/telegram/language"
 	"job-interviewer/internal/telegram/service"
+	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
-	"job-interviewer/pkg/telegram/service/keyboard"
+	"job-interviewer/pkg/telegram/service/survey"
 	"sort"
+	"strconv"
 )
 
 type Handler struct {
-	keyboardService       keyboard.Service
-	getInterviewOptionsUC interviewContracts.GetInterviewOptionsUseCase
-	startInterviewUC      interviewContracts.StartInterviewUseCase
-	service               service.Service
-	languageService       languageService.Service
+	startInterviewUC interviewContracts.StartInterviewUseCase
+	getInterviewUC   interviewContracts.GetInterviewUsecase
+	service          service.Service
+	languageStorage  language.Storage
 }
 
 func NewHandler(
-	k keyboard.Service,
-	g interviewContracts.GetInterviewOptionsUseCase,
 	s interviewContracts.StartInterviewUseCase,
+	getInterviewUC interviewContracts.GetInterviewUsecase,
 	service service.Service,
-	l languageService.Service,
 ) *Handler {
 	return &Handler{
-		keyboardService:       k,
-		getInterviewOptionsUC: g,
-		startInterviewUC:      s,
-		service:               service,
-		languageService:       l,
+		startInterviewUC: s,
+		getInterviewUC:   getInterviewUC,
+		service:          service,
+		languageStorage:  configLanguage(),
 	}
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	if len(request.Data) == 0 {
-		return h.choosePosition(request, sender)
+	userLang := language.Russian
+	var jobPositionMainKey, jobPositionSubKey string
+	var skipActiveInterview, skipActiveInterviewAnswered bool
+	newSurvey := survey.New()
+
+	activeInterview, err := h.getInterviewUC.FindActiveInterview(ctx, request.User.OriginalID)
+	if err != nil && !errors.Is(err, interviewContracts.ErrEmptyActiveInterview) {
+		return err
 	}
 
-	return h.startInterview(ctx, request, sender)
-}
-
-func (h *Handler) choosePosition(request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
-
-	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
-	buttons := make([]keyboard.InlineButton, 0, len(interviewOptions.Positions))
-	for key, position := range interviewOptions.Positions {
-		buttons = append(
-			buttons,
-			keyboard.InlineButton{
-				Value: position,
-				Data:  []string{key},
-				Type:  keyboard.ButtonData,
-			},
+	if activeInterview != nil {
+		newSurvey = newSurvey.AddQuestion(
+			survey.NewQuestion(
+				fmt.Sprintf(
+					h.languageStorage.GetText(userLang, language.TextKey(strconv.FormatInt(QuestionContinueActiveInterview, 10))),
+					activeInterview.JobInfo.Position,
+				),
+				func(answer bool) {
+					skipActiveInterview = !answer
+					skipActiveInterviewAnswered = true
+				},
+				survey.NewComplexPossibleAnswer(h.languageStorage.GetText(userLang, textKeyYes), true),
+				survey.NewComplexPossibleAnswer(h.languageStorage.GetText(userLang, textKeyNo), false),
+			),
 		)
 	}
 
-	sort.Slice(buttons, func(i, j int) bool {
-		return buttons[i].Value < buttons[j].Value
-	})
+	interviewAvailableValues := h.getInterviewUC.GetAvailableValues()
+	newSurvey = newSurvey.AddQuestion(
+		survey.NewQuestion(
+			h.languageStorage.GetText(userLang, language.TextKey(strconv.FormatInt(QuestionJobPosition, 10))),
+			func(answer string) {
+				jobPositionMainKey = answer
+			},
+			func() []survey.PossibleAnswer[string] {
+				possibleAnswers := make([]survey.PossibleAnswer[string], 0, len(interviewAvailableValues.Nodes))
+				for key := range interviewAvailableValues.Nodes {
+					possibleAnswers = append(
+						possibleAnswers,
+						survey.NewComplexPossibleAnswer(
+							h.languageStorage.GetText(userLang, language.TextKey(key)),
+							key,
+						),
+					)
+				}
+				sort.Slice(possibleAnswers, func(i, j int) bool {
+					return possibleAnswers[i].GetContent() > possibleAnswers[j].GetContent()
+				})
 
-	currentCommand := h.Command()
-	inlineKeyboard, err := h.keyboardService.BuildInlineKeyboardGrid(
-		keyboard.BuildInlineKeyboardIn{
-			Command: &currentCommand,
-			Buttons: buttons,
-		},
-	)
-	if err != nil {
-		return err
-	}
+				return possibleAnswers
+			}()...,
+		),
+	).SetAnswers(request.Data)
 
-	_, err = sender.Send(
-		model.NewResponse(request.Chat.ID).
-			SetText(h.languageService.GetText(userLang, languageService.ChoosePosition)).
-			SetInlineKeyboardMarkup(inlineKeyboard),
-	)
-	return err
-}
-
-func (h *Handler) startInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
-	userLang := request.User.Lang
-	interviewOptions := h.getInterviewOptionsUC.GetInterviewOptions()
-	position := interviewOptions.Positions[request.Data[0]]
-
-	err := sender.Update(
-		request.MessageID,
-		model.NewResponse(request.Chat.ID).
-			SetText(
+	if mainPosition, ok := interviewAvailableValues.Nodes[jobPositionMainKey]; ok && len(mainPosition.Children) > 0 {
+		newSurvey = newSurvey.AddQuestion(
+			survey.NewQuestion(
 				fmt.Sprintf(
-					h.languageService.GetText(userLang, languageService.StartInterviewSummary),
-					position,
+					h.languageStorage.GetText(userLang, textKeyClarifyJobPosition),
+					h.languageStorage.GetText(userLang, language.TextKey(jobPositionMainKey)),
 				),
-			).
-			SetInlineKeyboardMarkup(nil),
-	)
+				func(answer string) {
+					jobPositionSubKey = answer
+				},
+				func() []survey.PossibleAnswer[string] {
+					possibleAnswers := make([]survey.PossibleAnswer[string], 0, len(mainPosition.Children))
+					for key := range mainPosition.Children {
+						possibleAnswers = append(
+							possibleAnswers,
+							survey.NewComplexPossibleAnswer(
+								h.languageStorage.GetText(userLang, language.TextKey(key)),
+								key,
+							),
+						)
+					}
+					sort.Slice(possibleAnswers, func(i, j int) bool {
+						return possibleAnswers[i].GetContent() > possibleAnswers[j].GetContent()
+					})
+
+					return possibleAnswers
+				}()...,
+			),
+		)
+	}
+
+	activeQuestion, err := newSurvey.
+		SetAnswers(request.Data).
+		FindUnansweredQuestionAsKeyboard(h.Command())
 	if err != nil {
 		return err
 	}
 
-	_, err = sender.Send(model.NewResponse(request.Chat.ID).SetText(
-		h.languageService.GetText(userLang, languageService.LoadQuestions)),
-	)
-	if err != nil {
+	if skipActiveInterviewAnswered && !skipActiveInterview {
+		err = h.startInterviewUC.ContinueInterview(ctx, request.User.OriginalID)
+		if err != nil {
+			return err
+		}
+
+		return h.service.GetNextQuestion(ctx, request, sender)
+	}
+
+	if activeQuestion != nil {
+		_, err = sender.Send(
+			model.NewResponse().
+				SetText(activeQuestion.Text).
+				SetInlineKeyboardMarkup(activeQuestion.Keyboard),
+		)
 		return err
+	}
+
+	jobPosition := interviewAvailableValues.Nodes[jobPositionMainKey].Position
+	if jobPositionSubKey != "" && len(interviewAvailableValues.Nodes[jobPositionMainKey].Children) > 0 {
+		jobPosition = interviewAvailableValues.Nodes[jobPositionMainKey].Children[jobPositionSubKey].Position
 	}
 
 	err = h.startInterviewUC.StartInterview(
 		ctx,
 		interviewContracts.StartInterviewIn{
-			UserID:         request.User.OriginalID,
-			JobPosition:    position,
-			QuestionsCount: 10, //TODO: добавить выбор количества вопросов
+			UserID: request.User.OriginalID,
+			Questions: interviewContracts.StartInterviewQuestionsIn{
+				JobPosition: jobPosition,
+			},
 		},
 	)
 	if err != nil {
@@ -128,4 +169,10 @@ func (h *Handler) startInterview(ctx context.Context, request *model.Request, se
 
 func (h *Handler) Command() string {
 	return command.ForceStartInterviewCommand
+}
+
+func (h *Handler) Aliases() []string {
+	return []string{
+		h.languageStorage.GetText(language.Russian, textKeyStartInterview),
+	}
 }

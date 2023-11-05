@@ -2,42 +2,57 @@ package startinterview
 
 import (
 	"context"
-	"errors"
+	"github.com/google/uuid"
 	"job-interviewer/internal/interviewer/contracts"
+	"job-interviewer/internal/interviewer/flow"
 	"job-interviewer/internal/interviewer/service/interview"
-	"job-interviewer/internal/interviewer/service/question"
+	"job-interviewer/internal/interviewer/service/subscription"
 )
 
 type UseCase struct {
-	interviewService interview.Service
-	questionService  question.Service
+	interviewService    interview.Service
+	interviewFlow       flow.InterviewFlow
+	subscriptionService subscription.Service
 }
 
-func NewUseCase(i interview.Service, q question.Service) *UseCase {
-	return &UseCase{interviewService: i, questionService: q}
+func NewUseCase(
+	i interview.Service,
+	interviewFlow flow.InterviewFlow,
+	subscriptionService subscription.Service,
+) *UseCase {
+	return &UseCase{
+		interviewService:    i,
+		interviewFlow:       interviewFlow,
+		subscriptionService: subscriptionService,
+	}
 }
 
 func (u *UseCase) StartInterview(ctx context.Context, in contracts.StartInterviewIn) error {
-	activeInterview, err := u.interviewService.FindActiveInterview(ctx, in.UserID)
-	if err != nil && !errors.Is(err, contracts.ErrEmptyActiveInterview) {
-		return err
-	}
-	err = u.interviewService.FinishInterviewWithoutSummary(ctx, activeInterview)
+	available, err := u.subscriptionService.IsAvailable(ctx, in.UserID)
 	if err != nil {
 		return err
 	}
+	if !available.Result {
+		return available.Reason
+	}
 
-	newInterview, err := u.interviewService.CreateInterview(
+	return u.interviewFlow.StartInterview(
 		ctx,
-		interview.CreateInterviewIn{
-			UserID:         in.UserID,
-			JobPosition:    in.JobPosition,
-			QuestionsCount: in.QuestionsCount,
+		flow.StartInterviewIn{
+			UserID:      in.UserID,
+			JobPosition: string(in.Questions.JobPosition),
 		},
 	)
+}
+
+func (u *UseCase) ContinueInterview(ctx context.Context, userID uuid.UUID) error {
+	available, err := u.subscriptionService.IsAvailable(ctx, userID)
 	if err != nil {
 		return err
 	}
+	if !available.Result {
+		return available.Reason
+	}
 
-	return u.interviewService.StartInterview(ctx, newInterview)
+	return u.interviewFlow.ContinueInterview(ctx, userID)
 }

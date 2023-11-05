@@ -13,9 +13,19 @@ var (
 	ErrEmptyUserResult = errors.New("empty user result")
 )
 
-type Storage interface {
-	CreateUser(ctx context.Context, tx transactional.Tx, user *model.User) error
-	CreateTelegramToUser(ctx context.Context, tx transactional.Tx, telegramID int64, userID uuid.UUID) error
-	FindUserIDByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*model.User, error)
-	UpdateLanguage(ctx context.Context, tx transactional.Tx, userID uuid.UUID, language language.Language) error
-}
+type (
+	TelegramUser struct {
+		TelegramID int64
+		Username   string
+		FirstName  string
+		LatName    string
+	}
+
+	Storage interface {
+		CreateUser(ctx context.Context, tx transactional.Tx, user *model.User) error
+		CreateTelegramToUser(ctx context.Context, tx transactional.Tx, in TelegramUser, userID uuid.UUID) error
+		FindUserByTelegramID(ctx context.Context, tx transactional.Tx, telegramID int64) (*model.User, error)
+		FindUserByID(ctx context.Context, userID uuid.UUID) (*model.User, error)
+		UpdateLanguage(ctx context.Context, tx transactional.Tx, userID uuid.UUID, language language.Language) error
+	}
+)

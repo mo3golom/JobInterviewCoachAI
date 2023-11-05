@@ -2,14 +2,6 @@ package model
 
 import "github.com/google/uuid"
 
-const (
-	InterviewQuestionStatusAnswered InterviewQuestionStatus = "answered"
-	InterviewQuestionStatusActive   InterviewQuestionStatus = "active"
-	InterviewQuestionStatusCanceled InterviewQuestionStatus = "canceled"
-	InterviewQuestionStatusBad      InterviewQuestionStatus = "bad"
-	InterviewQuestionStatusSkip     InterviewQuestionStatus = "skip"
-)
-
 type (
 	InterviewQuestionStatus string
 
@@ -17,5 +9,14 @@ type (
 		ID      uuid.UUID
 		Text    string
 		JobInfo JobInfo
+	}
+
+	InterviewQuestion struct {
+		Text   string
+		Answer string
+	}
+
+	AnswerSuggestion struct {
+		Text string
 	}
 )

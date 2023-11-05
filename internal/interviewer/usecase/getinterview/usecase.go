@@ -11,15 +11,18 @@ type UseCase struct {
 	interviewService interview.Service
 }
 
-func NewUseCase(i interview.Service) *UseCase {
-	return &UseCase{interviewService: i}
+func NewUseCase(
+	interviewService interview.Service,
+) *UseCase {
+	return &UseCase{
+		interviewService: interviewService,
+	}
 }
 
-func (u *UseCase) GetActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error) {
-	activeInterview, err := u.interviewService.FindActiveInterview(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
+func (u *UseCase) FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error) {
+	return u.interviewService.FindActiveInterview(ctx, userID)
+}
 
-	return activeInterview, err
+func (u *UseCase) GetAvailableValues() *model.InterviewAvailableValues {
+	return &model.InterviewConfig
 }

@@ -15,6 +15,7 @@ type sqlxInterview struct {
 	QuestionCount int64     `db:"question_count"`
 	JobPosition   string    `db:"job_position"`
 	JobLevel      string    `db:"job_level"`
+	State         string    `db:"state"`
 }
 
 type DefaultStorage struct {
@@ -26,7 +27,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 }
 
 func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
-	query := `
+	const query = `
 		INSERT 
 		INTO interview (id, user_id, status, job_position, job_level, question_count) 
 		VALUES (:id, :user_id, :status, :job_position, :job_level, :question_count)
@@ -38,7 +39,7 @@ func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.T
 		UserID:        interview.UserID,
 		Status:        string(interview.Status),
 		QuestionCount: interview.QuestionsCount,
-		JobPosition:   interview.JobInfo.Position,
+		JobPosition:   string(interview.JobInfo.Position),
 		JobLevel:      "unknown",
 	}
 	_, err := tx.NamedExecContext(ctx, query, in)
@@ -46,7 +47,7 @@ func (s *DefaultStorage) CreateInterview(ctx context.Context, tx transactional.T
 }
 
 func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.Tx, interview *model.Interview) error {
-	query := `
+	const query = `
 		UPDATE interview
 		SET  
 		    status=:status,
@@ -62,9 +63,26 @@ func (s *DefaultStorage) UpdateInterview(ctx context.Context, tx transactional.T
 	return err
 }
 
+func (s *DefaultStorage) UpdateInterviewState(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, state model.InterviewState) error {
+	const query = `
+		UPDATE interview
+		SET  
+		    state=:state,
+		    updated_at=now()
+        WHERE id=:id 
+    `
+
+	in := sqlxInterview{
+		ID:    interviewID,
+		State: string(state),
+	}
+	_, err := tx.NamedExecContext(ctx, query, in)
+	return err
+}
+
 func (s *DefaultStorage) FindActiveInterviewByUserID(ctx context.Context, tx transactional.Tx, userID uuid.UUID) (*model.Interview, error) {
-	query := `
-		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count
+	const query = `
+		SELECT i.id, i.user_id, i.status, i.job_position, i.job_level, i.question_count, i.state
 		FROM interview as i
 		WHERE i.user_id = $1 and i.status = $2
     `
@@ -93,8 +111,9 @@ func convertInterview(in *sqlxInterview) *model.Interview {
 		UserID: in.UserID,
 		Status: model.InterviewStatus(in.Status),
 		JobInfo: model.JobInfo{
-			Position: in.JobPosition,
+			Position: model.Position(in.JobPosition),
 		},
 		QuestionsCount: in.QuestionCount,
+		State:          model.InterviewState(in.State),
 	}
 }

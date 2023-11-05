@@ -13,8 +13,11 @@ type (
 	}
 
 	TgUserIn struct {
-		ID   int64
-		Lang language.Language
+		ID        int64
+		Username  string
+		FirstName string
+		LastName  string
+		Lang      language.Language
 	}
 
 	UserUseCase interface {

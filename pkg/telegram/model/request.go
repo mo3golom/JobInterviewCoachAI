@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+var (
+	lang = map[string]language.Language{
+		"ru": language.Russian,
+		"en": language.English,
+	}
+)
+
 type (
 	Request struct {
 		UpdateID  int64
@@ -17,6 +24,7 @@ type (
 		Chat      *Chat
 		User      *User
 		Message   *Message
+		Voice     *Voice
 	}
 
 	Chat struct {
@@ -27,10 +35,19 @@ type (
 		ID         int64
 		OriginalID uuid.UUID
 		Lang       language.Language
+		Username   string
+		FirstName  string
+		LastName   string
 	}
 
 	Message struct {
 		Text string
+	}
+
+	Voice struct {
+		FileID   string
+		Duration int
+		URL      string
 	}
 )
 
@@ -43,12 +60,15 @@ func NewRequest(in tgbotapi.Update) Request {
 			ID: chat.ID,
 		},
 		User: &User{
-			ID:   user.ID,
-			Lang: language.Language(user.LanguageCode),
+			ID:        user.ID,
+			Lang:      lang[user.LanguageCode],
+			Username:  user.UserName,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 		},
 	}
 
-	if in.Message != nil && len(in.Message.Text) <= 150 {
+	if in.Message != nil {
 		request.MessageID = int64(in.Message.MessageID)
 		request.Message = &Message{
 			Text: in.Message.Text,
@@ -56,6 +76,13 @@ func NewRequest(in tgbotapi.Update) Request {
 
 		request.Command = in.Message.Text
 		request.Data = []string{}
+
+		if in.Message.Voice != nil {
+			request.Voice = &Voice{
+				FileID:   in.Message.Voice.FileID,
+				Duration: in.Message.Voice.Duration,
+			}
+		}
 	}
 
 	if in.CallbackQuery == nil {

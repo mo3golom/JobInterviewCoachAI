@@ -6,6 +6,9 @@ import (
 	"job-interviewer/internal/interviewer/model"
 )
 
-type GetInterviewUseCase interface {
-	GetActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error)
-}
+type (
+	GetInterviewUsecase interface {
+		FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error)
+		GetAvailableValues() *model.InterviewAvailableValues
+	}
+)

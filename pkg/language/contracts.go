@@ -1,5 +1,11 @@
 package language
 
-type Storage interface {
-	GetText(key TextKey) string
-}
+type (
+	WordStorage interface {
+		GetText(key TextKey) string
+	}
+
+	Storage interface {
+		GetText(lang Language, key TextKey) string
+	}
+)

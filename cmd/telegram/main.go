@@ -2,16 +2,18 @@ package main
 
 import (
 	"context"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
-	openai "github.com/sashabaranov/go-openai"
+	jobinterviewer "job-interviewer"
 	"job-interviewer/cmd"
 	"job-interviewer/internal/interviewer"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/telegram"
-	languageService "job-interviewer/internal/telegram/language"
+	go_openai "job-interviewer/pkg/go-openai"
+	"job-interviewer/pkg/payments"
+	"job-interviewer/pkg/subscription"
 	telegramPkg "job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/transactional"
+	variables2 "job-interviewer/pkg/variables"
 	"os"
 )
 
@@ -29,22 +31,53 @@ func main() {
 	template := transactional.NewTemplate(db)
 
 	log := cmd.MustInitLogger()
+	variables, err := variables2.NewConfiguration()
+	if err != nil {
+		panic(err)
+	}
 
-	c := openai.NewClient(os.Getenv("GPT_API_KEY"))
+	c := go_openai.NewClient(go_openai.Config{
+		ServiceType: go_openai.ServiceType(variables.Repository.MustGet().GetString(jobinterviewer.GPTServiceType)),
+		OpenAI: &go_openai.OpenAIConfig{
+			AuthToken: variables.Repository.MustGet().GetString(jobinterviewer.GPTApiKey),
+		},
+		VseGPT: &go_openai.VseGPTConfig{
+			AuthToken: variables.Repository.MustGet().GetString(jobinterviewer.VseGPTApiKey),
+			BaseUrl:   variables.Repository.MustGet().GetString(jobinterviewer.VseGPTBaseUrl),
+		},
+	})
 	gptGateway := gpt.NewGateway(c)
 
-	tgPkgConfig := telegramPkg.NewConfiguration(log)
+	tgPkgConfig := telegramPkg.NewConfiguration(
+		log,
+		variables.Repository.MustGet().GetString(jobinterviewer.TGBotToken),
+	)
 	tgPkg := tgPkgConfig.Gateway
+
+	subscriptionService := subscription.NewSubscriptionService(
+		db,
+		variables.Repository.MustGet().GetInt64(jobinterviewer.FreeInterviewsCount),
+	)
+	paymentsService := payments.NewPaymentsService(
+		db,
+		template,
+		variables.Repository.MustGet().GetInt64(jobinterviewer.YMShopID),
+		variables.Repository.MustGet().GetString(jobinterviewer.YMSecretKey),
+	)
 
 	interviewerConfig := interviewer.NewConfiguration(
 		db,
 		template,
 		gptGateway,
+		subscriptionService,
+		paymentsService,
+		variables.Repository.MustGet(),
 	)
 	telegramConfig := telegram.NewConfiguration(
 		interviewerConfig,
-		tgPkgConfig,
-		db,
+		log,
+		paymentsService,
+		variables.Repository.MustGet(),
 	)
 
 	// REGISTER MIDDLEWARE
@@ -53,23 +86,22 @@ func main() {
 	// REGISTER COMMAND
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.Start)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.StartInterview)
-	tgPkg.RegisterCommandHandler(
-		telegramConfig.Handlers.PreStartInterview,
-		telegramConfig.LanguageService.GetTextFromAllLanguages(languageService.StartInterview)...,
-	)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.FinishInterview)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsBad)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.MarkQuestionAsSkip)
-	tgPkg.RegisterCommandHandler(
-		telegramConfig.Handlers.ChangeUserLanguage,
-		telegramConfig.LanguageService.GetTextFromAllLanguages(languageService.ChooseLanguageSettings)...,
-	)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.SkipQuestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetAnswerSuggestion)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PaySubscription)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.CheckPayment)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.About)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)
 
-	updateConfig := tgbotapi.NewUpdate(0)
-	updateConfig.Timeout = 60
+	// REGISTER ERROR HANDLER
+	tgPkg.RegisterErrorHandler(telegramConfig.Handlers.SubscribeErrorHandler)
+
+	updateConfig := telegramPkg.Config{
+		Timeout: 60,
+	}
 	tgPkg.Run(ctx, updateConfig)
 }

@@ -8,13 +8,18 @@ import (
 var (
 	getNextQuestionButtons = []keyboard.InlineButton{
 		{
-			Value: "#️⃣️ Завершить",
+			Value: "🚜 Я все!",
 			Data:  []string{command.FinishInterviewCommand},
 			Type:  keyboard.ButtonData,
 		},
 		{
-			Value: "⏭️ Пропустить",
-			Data:  []string{command.MarkQuestionAsSkip},
+			Value: "🙋 Подскажи",
+			Data:  []string{command.GetAnswerSuggestionCommand},
+			Type:  keyboard.ButtonData,
+		},
+		{
+			Value: "💭 Не хочу отвечать",
+			Data:  []string{command.SkipQuestionCommand},
 			Type:  keyboard.ButtonData,
 		},
 	}

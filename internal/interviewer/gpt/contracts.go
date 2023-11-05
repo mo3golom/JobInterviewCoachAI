@@ -3,9 +3,12 @@ package gpt
 import (
 	"context"
 	"github.com/sashabaranov/go-openai"
+	"job-interviewer/internal/interviewer/model"
 )
 
 type (
+	Role string
+
 	externalClient interface {
 		CreateChatCompletion(
 			ctx context.Context,
@@ -24,8 +27,9 @@ type (
 	}
 
 	Gateway interface {
-		GetQuestion(ctx context.Context, jobPosition string) (string, error)
-		AcceptAnswer(ctx context.Context, in AcceptAnswerIn) (string, error)
-		SummarizeAnswersComments(ctx context.Context, answersComments []string) (string, error)
+		StartDialogue(ctx context.Context, jobPosition string) (*model.Message, error)
+		ContinueDialogue(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
+		SummarizeAnswersComments(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
+		GetAnswerSuggestion(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error)
 	}
 )

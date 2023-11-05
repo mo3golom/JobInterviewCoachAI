@@ -9,8 +9,11 @@ import (
 type (
 	externalClient interface {
 		GetUpdatesChan(config tgbotapi.UpdateConfig) tgbotapi.UpdatesChannel
+		ListenForWebhook(pattern string) tgbotapi.UpdatesChannel
 		Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 		Request(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error)
+		GetFileDirectURL(fileID string) (string, error)
+		GetWebhookInfo() (tgbotapi.WebhookInfo, error)
 	}
 
 	Middleware interface {
@@ -24,13 +27,32 @@ type (
 	CommandHandler interface {
 		Handler
 		Command() string
+		Aliases() []string
+	}
+
+	ErrorHandler interface {
+		Handle(ctx context.Context, err error, request *model.Request, sender Sender) bool
+	}
+
+	Config struct {
+		Offset  int
+		Limit   int
+		Timeout int
+		Webhook *WebhookConfig
+	}
+
+	WebhookConfig struct {
+		Enable bool
+		Host   string
+		Debug  bool
 	}
 
 	Gateway interface {
 		RegisterMiddleware(middleware Middleware)
-		RegisterCommandHandler(handler CommandHandler, aliases ...string)
+		RegisterCommandHandler(handler CommandHandler)
 		RegisterHandler(handler Handler)
-		Run(ctx context.Context, config tgbotapi.UpdateConfig)
+		RegisterErrorHandler(handler ErrorHandler)
+		Run(ctx context.Context, config Config)
 	}
 
 	Sender interface {
