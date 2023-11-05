@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"job-interviewer/internal/interviewer"
+	"job-interviewer/internal/telegram/handlers/command/about"
 	"job-interviewer/internal/telegram/handlers/command/checkpayment"
 	"job-interviewer/internal/telegram/handlers/command/finishinterview"
 	"job-interviewer/internal/telegram/handlers/command/getanswersuggestion"
@@ -30,6 +31,7 @@ type (
 		GetAnswerSuggestion telegram.CommandHandler
 		PaySubscription     telegram.CommandHandler
 		CheckPayment        telegram.CommandHandler
+		About               telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
 
@@ -89,6 +91,9 @@ func NewConfiguration(
 		),
 		CheckPayment: checkpayment.NewHandler(
 			paymentsService,
+		),
+		About: about.NewHandler(
+			variables,
 		),
 	}
 

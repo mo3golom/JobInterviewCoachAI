@@ -8,4 +8,5 @@ const (
 	GetAnswerSuggestionCommand = "/gt_nswr_sug"
 	PaySubscriptionCommand     = "/p_sbs"
 	CheckPaymentCommand        = "/chck_p"
+	AboutCommand               = "/about"
 )

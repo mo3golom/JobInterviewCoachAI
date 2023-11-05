@@ -12,6 +12,7 @@ const (
 	textKeySubscriptionHasExpired  language.TextKey = "textKeySubscriptionHasExpired"
 	textKeySubscribe               language.TextKey = "textKeySubscribe"
 	textKeyBuySubscription         language.TextKey = "textKeyBuySubscription"
+	textKeyAbout                   language.TextKey = "textKeyAbout"
 )
 
 func configLanguage() language.Storage {
@@ -28,6 +29,7 @@ func configLanguage() language.Storage {
 Месячная подписка стоит %d рублей в месяц. 
 После активации подписки вам будет доступно неограниченное тренировок с неограниченным числом вопросов! Если вы готовы, нажмите кнопку "%s" :)`,
 					textKeyBuySubscription: "💸 Купить подписку",
+					textKeyAbout:           "🤖 О боте",
 				},
 			),
 		},

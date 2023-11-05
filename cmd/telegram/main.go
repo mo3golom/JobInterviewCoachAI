@@ -92,6 +92,7 @@ func main() {
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetAnswerSuggestion)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PaySubscription)
 	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.CheckPayment)
+	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.About)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)

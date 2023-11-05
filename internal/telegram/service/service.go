@@ -160,6 +160,9 @@ func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.R
 				{
 					Value: s.languageStorage.GetText(lang, textKeyStartInterview),
 				},
+				{
+					Value: s.languageStorage.GetText(lang, textKeyAbout),
+				},
 			},
 		},
 	)

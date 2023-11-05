@@ -16,4 +16,5 @@ var (
 	GPTServiceType           = variables.Environment[string]("GPT_SERVICE_TYPE", "openai")
 	VseGPTBaseUrl            = variables.Environment[string]("VSE_GPT_BASE_URL", "")
 	VseGPTApiKey             = variables.Environment[string]("VSE_GPT_API_KEY", "")
+	TGContact                = variables.Environment[string]("TG_CONTACT", "")
 )
