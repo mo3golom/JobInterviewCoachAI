@@ -52,3 +52,29 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+  migrations:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Apply migrations
+        uses: ./.github/actions/db_migrations
+        with:
+          db-connection: postgres://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}
+          source: file://db/migrations
+  deploy:
+    needs: [build, migrations]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: themarkwill/coolify-actions@v0.0.3 #deploy
+        with:
+         coolify-url: ${{ secrets.COOLIFY_URL }} # Required
+         coolify-app-id: ${{ secrets.COOLIFY_APP_ID }}  #Required
+         coolify-token: ${{ secrets.COOLIFY_TOKEN }} #Required
