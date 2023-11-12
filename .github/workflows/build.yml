@@ -72,9 +72,9 @@ jobs:
     needs: [build, migrations]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: themarkwill/coolify-actions@v0.0.3 #deploy
-        with:
-         coolify-url: ${{ secrets.COOLIFY_URL }} # Required
-         coolify-app-id: ${{ secrets.COOLIFY_APP_ID }}  #Required
-         coolify-token: ${{ secrets.COOLIFY_TOKEN }} #Required
+     - name: Deploy Stage
+       uses: fjogeleit/http-request-action@v1
+       with:
+        url: ${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_ID }}&force=false
+        method: 'POST'
+        bearerToken: ${{ secrets.COOLIFY_TOKEN }}
