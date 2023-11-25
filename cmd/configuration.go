@@ -11,11 +11,6 @@ import (
 )
 
 func MustInitDB(ctx context.Context) *sqlx.DB {
-	sslModeValue := "require"
-	if variables.AppEnvironment() != variables.EnvironmentProd {
-		sslModeValue = "disable"
-	}
-
 	source := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%s dbname=%s sslmode=%s",
 		loadEnvValue("DB_USER"),
@@ -23,7 +18,7 @@ func MustInitDB(ctx context.Context) *sqlx.DB {
 		loadEnvValue("DB_HOST"),
 		loadEnvValue("DB_PORT"),
 		loadEnvValue("DB_NAME"),
-		sslModeValue,
+		loadEnvValue("DB_SSL"),
 	)
 
 	db, err := sqlx.ConnectContext(
