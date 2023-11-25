@@ -36,20 +36,25 @@ func NewService(
 	}
 }
 
-func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Request, sender telegram.Sender, updateMessageID ...int64) error {
 	userLang := language.Russian
-
-	messageID, err := sender.Send(
-		model.NewResponse().
-			SetText(
-				fmt.Sprintf(
-					"%s %s",
-					handlers.RobotPrefix,
-					"loading...",
-				),
-			))
-	if err != nil {
-		return err
+	var targetUpdateMessageID int64
+	if len(updateMessageID) > 0 {
+		targetUpdateMessageID = updateMessageID[0]
+	} else {
+		var err error
+		targetUpdateMessageID, err = sender.Send(
+			model.NewResponse().
+				SetText(
+					fmt.Sprintf(
+						"%s %s",
+						handlers.RobotPrefix,
+						"loading...",
+					),
+				))
+		if err != nil {
+			return err
+		}
 	}
 
 	summary, err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
@@ -67,7 +72,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 	}
 
 	return sender.Update(
-		messageID,
+		targetUpdateMessageID,
 		model.NewResponse().
 			SetText(
 				fmt.Sprintf(
@@ -114,6 +119,10 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 				))
 	}
 	if errors.Is(err, interviewerContracts.ErrQuestionsInFreePlanHaveExpired) {
+		if !s.variables.GetBool(job_interviewer.PaidModelEnable) {
+			return s.FinishInterview(ctx, request, sender, targetUpdateMessageID)
+		}
+
 		err = sender.Update(
 			targetUpdateMessageID,
 			model.NewResponse().
