@@ -37,6 +37,14 @@ func NewHandler(
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
 	userLang := language.Russian
+
+	if request.CallbackID != nil {
+		err := sender.SendCallback(*request.CallbackID)
+		if err != nil {
+			return err
+		}
+	}
+
 	var jobPositionMainKey, jobPositionSubKey string
 	var skipActiveInterview, skipActiveInterviewAnswered bool
 	newSurvey := survey.New()

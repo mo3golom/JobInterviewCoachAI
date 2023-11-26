@@ -57,6 +57,7 @@ type (
 
 	Sender interface {
 		Send(response model.Response) (int64, error)
+		SendCallback(callbackID model.CallbackID, message ...string) error
 		Update(messageID int64, response model.Response) error
 	}
 )

@@ -53,6 +53,9 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 			),
 		),
 	)
+	if err != nil {
+		return err
+	}
 	err = h.acceptAnswerUC.AcceptAnswer(
 		ctx,
 		interviewerContracts.AcceptAnswerIn{

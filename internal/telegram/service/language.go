@@ -13,6 +13,7 @@ const (
 	textKeySubscribe               language.TextKey = "textKeySubscribe"
 	textKeyBuySubscription         language.TextKey = "textKeyBuySubscription"
 	textKeyAbout                   language.TextKey = "textKeyAbout"
+	textKeyFinishNoActiveInterview language.TextKey = "textKeyFinishNoActiveInterview"
 )
 
 func configLanguage() language.Storage {
@@ -28,8 +29,9 @@ func configLanguage() language.Storage {
 					textKeySubscribe: `Спасибо что проявили интерес к нашему боту! К сожалению ваша подписка истекла или число бесплатных попыток закончилось :( 
 Месячная подписка стоит %d рублей в месяц. 
 После активации подписки вам будет доступно неограниченное тренировок с неограниченным числом вопросов! Если вы готовы, нажмите кнопку "%s" :)`,
-					textKeyBuySubscription: "💸 Купить подписку",
-					textKeyAbout:           "🤖 О боте",
+					textKeyBuySubscription:         "💸 Купить подписку",
+					textKeyAbout:                   "🤖 О боте",
+					textKeyFinishNoActiveInterview: "чтобы закончить тренировку, у вас должна быть активная тренировка",
 				},
 			),
 		},

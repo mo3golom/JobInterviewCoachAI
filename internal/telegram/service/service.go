@@ -58,6 +58,13 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 	}
 
 	summary, err := s.finishInterviewUC.FinishInterview(ctx, request.User.OriginalID)
+	if errors.Is(err, interviewerContracts.ErrEmptyActiveInterview) {
+		return sender.Update(
+			targetUpdateMessageID,
+			model.NewResponse().
+				SetText(s.languageStorage.GetText(userLang, textKeyFinishNoActiveInterview)),
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -206,7 +213,7 @@ func (s *DefaultService) ShowSubscribeMessage(sender telegram.Sender) error {
 				fmt.Sprintf(
 					s.languageStorage.GetText(userLang, textKeySubscribe),
 					subscriptionPrice,
-					textKeyBuySubscription,
+					s.languageStorage.GetText(userLang, textKeyBuySubscription),
 				),
 			).
 			SetInlineKeyboardMarkup(inlineKeyboard),

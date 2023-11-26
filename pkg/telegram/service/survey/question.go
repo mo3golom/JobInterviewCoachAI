@@ -5,6 +5,11 @@ import (
 	"job-interviewer/pkg/telegram/service/keyboard"
 	"sort"
 	"strconv"
+	"unicode/utf8"
+)
+
+const (
+	maxKeyboardButtonContentLen = 10
 )
 
 type (
@@ -63,6 +68,7 @@ func NewQuestion[T comparable](
 }
 
 func (q DefaultQuestion[T]) toInlineKeyboard(command string, previousAnswers ...string) (*tgbotapi.InlineKeyboardMarkup, error) {
+	keyboardListView := false
 	buttons := make([]keyboard.InlineButton, 0, len(q.possibleAnswers))
 	for index, value := range q.possibleAnswers {
 		data := make([]string, 0, 1)
@@ -76,11 +82,24 @@ func (q DefaultQuestion[T]) toInlineKeyboard(command string, previousAnswers ...
 				Type:  keyboard.ButtonData,
 			},
 		)
+
+		if utf8.RuneCountInString(value.content) > maxKeyboardButtonContentLen {
+			keyboardListView = true
+		}
 	}
 
 	sort.Slice(buttons, func(i, j int) bool {
 		return buttons[i].Value < buttons[j].Value
 	})
+
+	if keyboardListView {
+		return keyboard.BuildInlineKeyboardList(
+			keyboard.BuildInlineKeyboardIn{
+				Command: &command,
+				Buttons: buttons,
+			},
+		)
+	}
 	return keyboard.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
 			Command: &command,
