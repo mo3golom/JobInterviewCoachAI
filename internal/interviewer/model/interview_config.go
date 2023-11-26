@@ -34,6 +34,9 @@ var (
 					},
 				},
 			},
+			"qa": {
+				Position: "qa engineer",
+			},
 			"project_manager": {
 				Position: "project manager",
 			},

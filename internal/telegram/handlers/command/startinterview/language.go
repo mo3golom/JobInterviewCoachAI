@@ -12,6 +12,7 @@ const (
 	textKeyProjectManager     language.TextKey = "project_manager"
 	textKeyProductManager     language.TextKey = "product_manager"
 	textKeyProductDesigner    language.TextKey = "product_designer"
+	textKeyQA                 language.TextKey = "qa"
 	textKeyGolang             language.TextKey = "golang"
 	textKeyPHP                language.TextKey = "php"
 	textKeyPython             language.TextKey = "python"
@@ -38,6 +39,7 @@ func configLanguage() language.Storage {
 					textKeyProjectManager:     "Project менеджер",
 					textKeyProductManager:     "Product менеджер",
 					textKeyProductDesigner:    "Product дизайнер",
+					textKeyQA:                 "QA инженер",
 					textKeyGolang:             "Golang",
 					textKeyPHP:                "PHP",
 					textKeyPython:             "Python",

@@ -21,6 +21,13 @@ func NewHandler(
 }
 
 func (h *Handler) Handle(ctx context.Context, request *model.Request, sender telegram.Sender) error {
+	if request.CallbackID != nil {
+		err := sender.SendCallback(*request.CallbackID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return h.service.FinishInterview(ctx, request, sender)
 }
 

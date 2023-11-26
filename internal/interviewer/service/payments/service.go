@@ -14,7 +14,7 @@ import (
 
 const (
 	subscriptionPaymentType        model.Type = "job_interviewer_subscription"
-	subscriptionPaymentDescription            = "Оплата подписки на бот job interviewer coach ai"
+	subscriptionPaymentDescription string     = "Оплата подписки на бот job interviewer coach ai"
 )
 
 type DefaultService struct {

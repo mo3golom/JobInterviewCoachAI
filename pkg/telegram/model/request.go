@@ -1,11 +1,9 @@
 package model
 
 import (
-	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
 	"job-interviewer/pkg/language"
-	"strings"
 )
 
 var (
@@ -16,15 +14,18 @@ var (
 )
 
 type (
+	CallbackID string
+
 	Request struct {
-		UpdateID  int64
-		MessageID int64
-		Command   string
-		Data      []string
-		Chat      *Chat
-		User      *User
-		Message   *Message
-		Voice     *Voice
+		UpdateID   int64
+		MessageID  int64
+		Command    string
+		Data       []string
+		CallbackID *CallbackID
+		Chat       *Chat
+		User       *User
+		Message    *Message
+		Voice      *Voice
 	}
 
 	Chat struct {
@@ -88,6 +89,7 @@ func NewRequest(in tgbotapi.Update) Request {
 	if in.CallbackQuery == nil {
 		return request
 	}
+	request.CallbackID = (*CallbackID)(&in.CallbackQuery.ID)
 	request.MessageID = int64(in.CallbackQuery.Message.MessageID)
 	command, data := StringToCommandWithData(in.CallbackQuery.Data)
 	request.Command = command
@@ -99,9 +101,4 @@ func NewRequest(in tgbotapi.Update) Request {
 	}
 
 	return request
-}
-
-func (r *Request) toCallbackString() string {
-	data := strings.Join(r.Data, ":")
-	return fmt.Sprintf("%s#%s", r.Command, data)
 }
