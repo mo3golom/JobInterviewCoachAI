@@ -213,7 +213,7 @@ func (s *DefaultService) ShowSubscribeMessage(sender telegram.Sender) error {
 				fmt.Sprintf(
 					s.languageStorage.GetText(userLang, textKeySubscribe),
 					subscriptionPrice,
-					textKeyBuySubscription,
+					s.languageStorage.GetText(userLang, textKeyBuySubscription),
 				),
 			).
 			SetInlineKeyboardMarkup(inlineKeyboard),
