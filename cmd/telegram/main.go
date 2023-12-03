@@ -31,6 +31,8 @@ func main() {
 	template := transactional.NewTemplate(db)
 
 	log := cmd.MustInitLogger()
+	defer log.Flush()
+
 	variables, err := variables2.NewConfiguration()
 	if err != nil {
 		panic(err)
