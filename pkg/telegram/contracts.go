@@ -48,10 +48,10 @@ type (
 	}
 
 	Gateway interface {
-		RegisterMiddleware(middleware Middleware)
-		RegisterCommandHandler(handler CommandHandler)
-		RegisterHandler(handler Handler)
-		RegisterErrorHandler(handler ErrorHandler)
+		RegisterMiddleware(middleware ...Middleware)
+		RegisterCommandHandler(handler ...CommandHandler)
+		RegisterHandler(handler ...Handler)
+		RegisterErrorHandler(handler ...ErrorHandler)
 		Run(ctx context.Context, config Config)
 	}
 

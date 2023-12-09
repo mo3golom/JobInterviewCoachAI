@@ -10,6 +10,7 @@ import (
 type (
 	Storage interface {
 		CreateMessage(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, in *model.Message) error
+		CreateMessages(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, in []model.Message) error
 		GetMessagesByInterviewID(ctx context.Context, interviewID uuid.UUID) ([]model.Message, error)
 		GetMessagesFromActiveInterviewByUserID(ctx context.Context, userID uuid.UUID) ([]model.Message, error)
 	}

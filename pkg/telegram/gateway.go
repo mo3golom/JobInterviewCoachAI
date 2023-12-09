@@ -39,33 +39,35 @@ func NewGateway(
 	return gateway
 }
 
-func (g *DefaultGateway) RegisterMiddleware(middleware Middleware) {
+func (g *DefaultGateway) RegisterMiddleware(middleware ...Middleware) {
 	copyMiddleware := helper.CopySlice[Middleware](g.middlewares)
-	copyMiddleware = append(copyMiddleware, middleware)
+	copyMiddleware = append(copyMiddleware, middleware...)
 
 	g.middlewares = copyMiddleware
 }
 
-func (g *DefaultGateway) RegisterCommandHandler(handler CommandHandler) {
+func (g *DefaultGateway) RegisterCommandHandler(handler ...CommandHandler) {
 	copyCommandHandlers := helper.CopyMap[string, Handler](g.commandHandlers)
 
-	copyCommandHandlers[handler.Command()] = handler
-	for _, alias := range handler.Aliases() {
-		copyCommandHandlers[alias] = handler
+	for _, h := range handler {
+		copyCommandHandlers[h.Command()] = h
+		for _, alias := range h.Aliases() {
+			copyCommandHandlers[alias] = h
+		}
 	}
 	g.commandHandlers = copyCommandHandlers
 }
 
-func (g *DefaultGateway) RegisterErrorHandler(handler ErrorHandler) {
+func (g *DefaultGateway) RegisterErrorHandler(handler ...ErrorHandler) {
 	copyErrorHandlers := helper.CopySlice[ErrorHandler](g.errorHandlers)
-	copyErrorHandlers = append(copyErrorHandlers, handler)
+	copyErrorHandlers = append(copyErrorHandlers, handler...)
 
 	g.errorHandlers = copyErrorHandlers
 }
 
-func (g *DefaultGateway) RegisterHandler(handler Handler) {
+func (g *DefaultGateway) RegisterHandler(handler ...Handler) {
 	copyMessageHandlers := helper.CopySlice[Handler](g.messageHandlers)
-	copyMessageHandlers = append(copyMessageHandlers, handler)
+	copyMessageHandlers = append(copyMessageHandlers, handler...)
 
 	g.messageHandlers = copyMessageHandlers
 }
@@ -141,6 +143,13 @@ func (g *DefaultGateway) handleUpdate(ctx context.Context, request *model.Reques
 	// MIDDLEWARE
 	for _, middleware := range g.middlewares {
 		err := middleware.Handle(ctx, request)
+		if err != nil {
+			return err
+		}
+	}
+
+	if request.CallbackID != nil {
+		err := senderAdapterImpl.SendCallback(*request.CallbackID)
 		if err != nil {
 			return err
 		}

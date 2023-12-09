@@ -3,6 +3,7 @@ package interview
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/gpt"
@@ -11,6 +12,11 @@ import (
 	"job-interviewer/internal/interviewer/storage/interview"
 	"job-interviewer/internal/interviewer/storage/messages"
 	"job-interviewer/pkg/transactional"
+)
+
+const (
+	startTechnicalInterviewPrompt  = `I want you to act as an interviewer. I will be the candidate and you will ask me the technical interview questions for the %s position. I want you to only reply as the interviewer. Do not write all the conservation at once. I want you to only do the interview with me. Ask me the tricky questions and wait for my answers. Do not write explanations. Do not write "interviewer:". Ask me the questions one by one like an interviewer does and wait for my answers. My first sentence is "Hi"`
+	startBehavioralInterviewPrompt = `I want you to act as an interviewer. I will be the candidate and you will ask me the behavioral interview questions. I want you to only reply as the interviewer. Do not write all the conservation at once. I want you to only do the interview with me. Ask me the tricky questions and wait for my answers. Do not write explanations. Do not write "interviewer:". Ask me the questions one by one like an interviewer does and wait for my answers. My first sentence is "Hi"`
 )
 
 type DefaultService struct {
@@ -104,12 +110,8 @@ func (s *DefaultService) FinishInterview(ctx context.Context, interview *model.I
 	}
 
 	var summary string
-	if len(history) > 1 {
-		result, err := s.gpt.SummarizeAnswersComments(
-			ctx,
-			history,
-			string(interview.JobInfo.Position),
-		)
+	if len(history) > 2 {
+		result, err := s.gpt.SummarizeDialogue(ctx, history)
 		if err != nil {
 			return "", err
 		}
@@ -153,19 +155,33 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.I
 	}
 
 	if len(history) == 0 {
-		result, err := s.gpt.StartDialogue(ctx, string(interview.JobInfo.Position))
+		startPrompt := fmt.Sprintf(startTechnicalInterviewPrompt, interview.JobInfo.Position)
+		if interview.JobInfo.Position == model.BehavioralPosition {
+			startPrompt = startBehavioralInterviewPrompt
+		}
+
+		result, err := s.gpt.StartDialogue(
+			ctx,
+			startPrompt,
+		)
 		if err != nil {
 			return nil, err
 		}
 
 		err = s.transactionalTemplate.Execute(ctx, func(tx transactional.Tx) error {
-			return s.messagesStorage.CreateMessage(
+			return s.messagesStorage.CreateMessages(
 				ctx,
 				tx,
 				interview.ID,
-				&model.Message{
-					Role:    model.RoleAssistant,
-					Content: result.Content,
+				[]model.Message{
+					{
+						Role:    model.RoleUser,
+						Content: startPrompt,
+					},
+					{
+						Role:    model.RoleAssistant,
+						Content: result.Content,
+					},
 				},
 			)
 		})
@@ -184,7 +200,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.I
 		}, nil
 	}
 
-	result, err := s.gpt.ContinueDialogue(ctx, history, string(interview.JobInfo.Position))
+	result, err := s.gpt.ContinueDialogue(ctx, history)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +224,7 @@ func (s *DefaultService) AcceptAnswer(ctx context.Context, in AcceptAnswerIn) er
 		},
 	)
 
-	result, err := s.gpt.ContinueDialogue(ctx, history, string(in.Interview.JobInfo.Position))
+	result, err := s.gpt.ContinueDialogue(ctx, history)
 	if err != nil {
 		return err
 	}
@@ -253,7 +269,7 @@ func (s *DefaultService) GetAnswerSuggestion(ctx context.Context, interview *mod
 		return nil, contracts.ErrInterviewQuestionsIsEmpty
 	}
 
-	result, err := s.gpt.GetAnswerSuggestion(ctx, history, string(interview.JobInfo.Position))
+	result, err := s.gpt.GetAnswerSuggestion(ctx, history)
 	if err != nil {
 		return nil, err
 	}

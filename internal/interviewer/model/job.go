@@ -1,5 +1,9 @@
 package model
 
+const (
+	BehavioralPosition Position = "behavioral"
+)
+
 type (
 	Position string
 
