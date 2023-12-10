@@ -46,6 +46,9 @@ var (
 			"product_designer": {
 				Position: "product designer",
 			},
+			string(BehavioralPosition): {
+				Position: "behavioral interview",
+			},
 		},
 	}
 )

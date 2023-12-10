@@ -26,7 +26,7 @@ func NewStorage(db *sqlx.DB) *DefaultStorage {
 	return &DefaultStorage{db: db}
 }
 
-func (d *DefaultStorage) CreateMessage(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, in *model.Message) error {
+func (d *DefaultStorage) CreateMessages(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, in []model.Message) error {
 	query := `
 		INSERT 
 		INTO interview_messages (interview_id, content, role) 
@@ -34,13 +34,24 @@ func (d *DefaultStorage) CreateMessage(ctx context.Context, tx transactional.Tx,
 		ON CONFLICT DO NOTHING 
     `
 
-	message := sqlxMessage{
-		InterviewID: interviewID,
-		Content:     in.Content,
-		Role:        string(in.Role),
+	sqlxMessages := make([]sqlxMessage, 0, len(in))
+	for _, item := range in {
+		sqlxMessages = append(
+			sqlxMessages,
+			sqlxMessage{
+				InterviewID: interviewID,
+				Content:     item.Content,
+				Role:        string(item.Role),
+			},
+		)
 	}
-	_, err := tx.NamedExecContext(ctx, query, message)
+
+	_, err := tx.NamedExecContext(ctx, query, sqlxMessages)
 	return err
+}
+
+func (d *DefaultStorage) CreateMessage(ctx context.Context, tx transactional.Tx, interviewID uuid.UUID, in *model.Message) error {
+	return d.CreateMessages(ctx, tx, interviewID, []model.Message{*in})
 }
 
 func (d *DefaultStorage) GetMessagesByInterviewID(ctx context.Context, interviewID uuid.UUID) ([]model.Message, error) {

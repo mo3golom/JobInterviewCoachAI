@@ -86,15 +86,17 @@ func main() {
 	tgPkg.RegisterMiddleware(telegramConfig.Middlewares.User)
 
 	// REGISTER COMMAND
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.Start)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.StartInterview)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.FinishInterview)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetNextQuestion)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.SkipQuestion)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.GetAnswerSuggestion)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.PaySubscription)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.CheckPayment)
-	tgPkg.RegisterCommandHandler(telegramConfig.Handlers.About)
+	tgPkg.RegisterCommandHandler(
+		telegramConfig.Handlers.Start,
+		telegramConfig.Handlers.StartInterview,
+		telegramConfig.Handlers.FinishInterview,
+		telegramConfig.Handlers.GetNextQuestion,
+		telegramConfig.Handlers.SkipQuestion,
+		telegramConfig.Handlers.GetAnswerSuggestion,
+		telegramConfig.Handlers.PaySubscription,
+		telegramConfig.Handlers.CheckPayment,
+		telegramConfig.Handlers.About,
+	)
 
 	// REGISTER MESSAGE HANDLER
 	tgPkg.RegisterHandler(telegramConfig.Handlers.AcceptAnswer)

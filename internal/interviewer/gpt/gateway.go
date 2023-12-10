@@ -2,7 +2,6 @@ package gpt
 
 import (
 	"context"
-	"fmt"
 	openai "github.com/sashabaranov/go-openai"
 	"job-interviewer/internal/interviewer/model"
 	"regexp"
@@ -10,7 +9,6 @@ import (
 )
 
 const (
-	getQuestionPrompt              = `I want you to act as an interviewer. I will be the candidate and you will ask me the interview questions for the %s position. I want you to only reply as the interviewer. Do not write all the conservation at once. I want you to only do the interview with me. Ask me the tricky questions and wait for my answers. Do not write explanations. Do not write "interviewer:". Ask me the questions one by one like an interviewer does and wait for my answers. My first sentence is "Hi"`
 	getAnswerSuggestionPrompt      = "I don't know how to answer to this question, please give me a list of possible answers"
 	summarizeAnswersCommentsPrompt = "I want to finish interview. Summarize the dialogue and give me feedback. Ignore messages where I ask help with answer."
 )
@@ -23,7 +21,7 @@ func NewGateway(c externalClient) *DefaultGateway {
 	return &DefaultGateway{client: c}
 }
 
-func (g *DefaultGateway) SummarizeAnswersComments(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error) {
+func (g *DefaultGateway) SummarizeDialogue(ctx context.Context, dialog []model.Message) (*model.Message, error) {
 	messages := make([]openai.ChatCompletionMessage, 0, len(dialog))
 	for _, message := range dialog {
 		role := openai.ChatMessageRoleAssistant
@@ -50,28 +48,23 @@ func (g *DefaultGateway) SummarizeAnswersComments(ctx context.Context, dialog []
 
 	return g.createChatCompletion(
 		ctx,
-		append([]openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf(getQuestionPrompt, jobPosition),
-			},
-		}, messages...),
+		messages,
 	)
 }
 
-func (g *DefaultGateway) StartDialogue(ctx context.Context, jobPosition string) (*model.Message, error) {
+func (g *DefaultGateway) StartDialogue(ctx context.Context, startPrompt string) (*model.Message, error) {
 	return g.createChatCompletion(
 		ctx,
 		[]openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf(getQuestionPrompt, jobPosition),
+				Content: startPrompt,
 			},
 		},
 	)
 }
 
-func (g *DefaultGateway) ContinueDialogue(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error) {
+func (g *DefaultGateway) ContinueDialogue(ctx context.Context, dialog []model.Message) (*model.Message, error) {
 	messages := make([]openai.ChatCompletionMessage, 0, len(dialog))
 	for _, message := range dialog {
 		role := openai.ChatMessageRoleAssistant
@@ -90,16 +83,11 @@ func (g *DefaultGateway) ContinueDialogue(ctx context.Context, dialog []model.Me
 
 	return g.createChatCompletion(
 		ctx,
-		append([]openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf(getQuestionPrompt, jobPosition),
-			},
-		}, messages...),
+		messages,
 	)
 }
 
-func (g *DefaultGateway) GetAnswerSuggestion(ctx context.Context, dialog []model.Message, jobPosition string) (*model.Message, error) {
+func (g *DefaultGateway) GetAnswerSuggestion(ctx context.Context, dialog []model.Message) (*model.Message, error) {
 	messages := make([]openai.ChatCompletionMessage, 0, len(dialog))
 	for _, message := range dialog {
 		role := openai.ChatMessageRoleAssistant
@@ -126,12 +114,7 @@ func (g *DefaultGateway) GetAnswerSuggestion(ctx context.Context, dialog []model
 
 	return g.createChatCompletion(
 		ctx,
-		append([]openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: fmt.Sprintf(getQuestionPrompt, jobPosition),
-			},
-		}, messages...),
+		messages,
 	)
 }
 
