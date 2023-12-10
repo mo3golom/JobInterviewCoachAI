@@ -10,7 +10,6 @@ import (
 	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
 	"job-interviewer/pkg/telegram/model"
-	"job-interviewer/pkg/telegram/service/survey"
 )
 
 type Handler struct {
@@ -41,31 +40,13 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		return err
 	}
 
-	interviewAvailableValues := h.getInterviewUC.GetAvailableValues()
-	specificChainContext := chainContext{
-		userLang:                 userLang,
-		languageStorage:          h.languageStorage,
-		interviewAvailableValues: interviewAvailableValues,
-		requestData:              request.Data,
-	}
-	if activeInterview != nil {
-		specificChainContext.activeInterviewExists = true
-		specificChainContext.activeInterviewJobPosition = activeInterview.JobInfo.Position
-	}
-
-	specificChain := chain{}.
-		next(activeInterviewQuestion()).
-		next(mainPositionQuestion()).
-		next(subPositionQuestion())
-
 	outSurvey := out{}
-	activeQuestion, err := specificChain.
-		perform(
-			specificChainContext,
-			survey.New(),
-			&outSurvey,
-		).
-		SetAnswers(request.Data).
+	activeQuestion, err := h.getSurvey(
+		userLang,
+		activeInterview,
+		request.Data,
+		&outSurvey,
+	).
 		FindUnansweredQuestionAsKeyboard(h.Command())
 	if err != nil {
 		return err
@@ -89,9 +70,9 @@ func (h *Handler) Handle(ctx context.Context, request *model.Request, sender tel
 		return err
 	}
 
-	jobPosition := interviewAvailableValues.Nodes[outSurvey.jobPositionMainKey].Position
-	if outSurvey.jobPositionSubKey != "" && len(interviewAvailableValues.Nodes[outSurvey.jobPositionMainKey].Children) > 0 {
-		jobPosition = interviewAvailableValues.Nodes[outSurvey.jobPositionMainKey].Children[outSurvey.jobPositionSubKey].Position
+	jobPosition := outSurvey.jobPositionMainKey
+	if outSurvey.jobPositionSubKey != "" {
+		jobPosition = outSurvey.jobPositionSubKey
 	}
 
 	err = h.startInterviewUC.StartInterview(

@@ -3,13 +3,14 @@ package flow
 import (
 	"context"
 	"github.com/google/uuid"
+	"job-interviewer/internal"
 	"job-interviewer/internal/interviewer/model"
 )
 
 type (
 	StartInterviewIn struct {
 		UserID      uuid.UUID
-		JobPosition string
+		JobPosition internal.Position
 	}
 
 	StartInterviewOut struct {

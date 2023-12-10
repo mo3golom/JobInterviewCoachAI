@@ -3,18 +3,19 @@ package survey
 import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 type (
-	Survey interface {
+	Survey[D any] interface {
 		FindUnansweredQuestionAsKeyboard(command string) (*QuestionWithKeyboard, error)
-		SetAnswers(requestData []string) Survey
-		AddQuestion(question Question, additional ...Question) Survey
+		Init(in []string, out D) Survey[D]
+		AddQuestion(question Question[D], additional ...Question[D]) Survey[D]
+		AddQuestionWhen(question Question[D], clause func() bool) Survey[D]
 	}
 
-	Question interface {
+	Question[D any] interface {
 		toInlineKeyboard(command string, previousAnswers ...string) (*tgbotapi.InlineKeyboardMarkup, error)
 		text() string
 		isAnswered() bool
 		answerID() int
-		setAnswer(answerID int) Question
+		setAnswer(answerID int, out D) Question[D]
 	}
 
 	QuestionWithKeyboard struct {

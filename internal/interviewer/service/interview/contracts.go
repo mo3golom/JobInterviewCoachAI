@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
+	"job-interviewer/internal"
 	"job-interviewer/internal/interviewer/model"
 )
 
@@ -14,7 +15,7 @@ var (
 type (
 	CreateInterviewIn struct {
 		UserID         uuid.UUID
-		JobPosition    model.Position
+		JobPosition    internal.Position
 		QuestionsCount int64
 	}
 

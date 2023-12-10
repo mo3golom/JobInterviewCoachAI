@@ -22,7 +22,3 @@ func NewUseCase(
 func (u *UseCase) FindActiveInterview(ctx context.Context, userID uuid.UUID) (*model.Interview, error) {
 	return u.interviewService.FindActiveInterview(ctx, userID)
 }
-
-func (u *UseCase) GetAvailableValues() *model.InterviewAvailableValues {
-	return &model.InterviewConfig
-}

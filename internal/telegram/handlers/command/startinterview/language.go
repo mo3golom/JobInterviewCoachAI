@@ -1,27 +1,13 @@
 package startinterview
 
 import (
+	"job-interviewer/internal"
 	"job-interviewer/pkg/language"
 )
 
 const (
 	textKeyStartInterview                  language.TextKey = "textKeyStartInterview"
 	textKeyClarifyJobPosition              language.TextKey = "textKeyClarifyJobPosition"
-	textKeyDeveloper                       language.TextKey = "developer"
-	textKeyProjectManager                  language.TextKey = "project_manager"
-	textKeyProductManager                  language.TextKey = "product_manager"
-	textKeyProductDesigner                 language.TextKey = "product_designer"
-	textKeyQA                              language.TextKey = "qa"
-	textKeyGolang                          language.TextKey = "golang"
-	textKeyPHP                             language.TextKey = "php"
-	textKeyPython                          language.TextKey = "python"
-	textKeyRust                            language.TextKey = "rust"
-	textKeyJavascript                      language.TextKey = "javascript"
-	textKeySwift                           language.TextKey = "swift"
-	textKeyJava                            language.TextKey = "java"
-	textKeyCPlusPlus                       language.TextKey = "c_plus_plus"
-	textKeyCSharp                          language.TextKey = "c_sharp"
-	textKeyBehavioral                      language.TextKey = "behavioral"
 	textKeyYes                             language.TextKey = "yes"
 	textKeyNo                              language.TextKey = "no"
 	textKeyQuestionJobPosition             language.TextKey = "questionJobPosition"
@@ -34,28 +20,28 @@ func configLanguage() language.Storage {
 		map[language.Language]language.WordStorage{
 			language.Russian: language.NewWordStorage(
 				map[language.TextKey]string{
-					textKeyQuestionContinueActiveInterview: "У вас есть уже активное интервью %s! Хотите продолжить?",
-					textKeyQuestionJobPosition:             "Выбери позицию, для которой хочешь пройти интервью:",
-					textKeyClarifyJobPosition:              "Ты выбрал: \"%s\", осталось уточнить направление:",
-					textKeyYourChoice:                      "Ты выбрал: \"%s\", тренировка начинается! 🚀",
-					textKeyStartInterview:                  "🚀 Начать новое интервью",
-					textKeyDeveloper:                       "Разработчик",
-					textKeyProjectManager:                  "Project менеджер",
-					textKeyProductManager:                  "Product менеджер",
-					textKeyProductDesigner:                 "Product дизайнер",
-					textKeyQA:                              "QA инженер",
-					textKeyBehavioral:                      "Behavioral интервью",
-					textKeyGolang:                          "Golang",
-					textKeyPHP:                             "PHP",
-					textKeyPython:                          "Python",
-					textKeyRust:                            "Rust",
-					textKeyJavascript:                      "Javascript",
-					textKeySwift:                           "Swift",
-					textKeyJava:                            "Java",
-					textKeyCPlusPlus:                       "C++",
-					textKeyCSharp:                          "C#",
-					textKeyYes:                             "Да",
-					textKeyNo:                              "Нет",
+					textKeyQuestionContinueActiveInterview:         `У вас есть уже активное интервью <b>"%s"</b>! Хотите продолжить?`,
+					textKeyQuestionJobPosition:                     "Выбери позицию, для которой хочешь пройти интервью:",
+					textKeyClarifyJobPosition:                      `Ты выбрал: <b>"%s"</b>, осталось уточнить направление:`,
+					textKeyYourChoice:                              `Ты выбрал: <b>"%s"</b>, тренировка начинается! 🚀`,
+					textKeyStartInterview:                          "🚀 Начать новое интервью",
+					language.TextKey(Developer):                    "Разработчик",
+					language.TextKey(internal.ProjectManager):      "Project менеджер",
+					language.TextKey(internal.ProductManager):      "Product менеджер",
+					language.TextKey(internal.ProductDesigner):     "Product дизайнер",
+					language.TextKey(internal.QAEngineer):          "QA инженер",
+					language.TextKey(internal.Behavioral):          "Behavioral интервью",
+					language.TextKey(internal.GolangDeveloper):     "Golang",
+					language.TextKey(internal.PhpDeveloper):        "PHP",
+					language.TextKey(internal.PythonDeveloper):     "Python",
+					language.TextKey(internal.RustDeveloper):       "Rust",
+					language.TextKey(internal.JavascriptDeveloper): "Javascript",
+					language.TextKey(internal.SwiftDeveloper):      "Swift",
+					language.TextKey(internal.JavaDeveloper):       "Java",
+					language.TextKey(internal.CplusplusDeveloper):  "C++",
+					language.TextKey(internal.CsharpDeveloper):     "C#",
+					textKeyYes: "Да",
+					textKeyNo:  "Нет",
 				},
 			),
 		},

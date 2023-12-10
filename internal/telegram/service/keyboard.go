@@ -2,7 +2,7 @@ package service
 
 import (
 	"job-interviewer/internal/telegram/handlers/command"
-	"job-interviewer/pkg/telegram/service/keyboard"
+	"job-interviewer/pkg/telegram/keyboard"
 )
 
 var (

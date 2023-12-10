@@ -37,6 +37,7 @@ func (r Response) SetKeyboardMarkup(value *tgbotapi.ReplyKeyboardMarkup) Respons
 
 func (r Response) ToMessageConfig() *tgbotapi.MessageConfig {
 	result := tgbotapi.NewMessage(r.chatID, r.text)
+	result.ParseMode = tgbotapi.ModeHTML
 	result.ReplyMarkup = r.inlineKeyboardMarkup
 	if r.keyboardMarkup != nil {
 		result.ReplyMarkup = r.keyboardMarkup
@@ -47,6 +48,7 @@ func (r Response) ToMessageConfig() *tgbotapi.MessageConfig {
 
 func (r Response) ToEditMessageTextConfig() *tgbotapi.EditMessageTextConfig {
 	result := tgbotapi.NewEditMessageText(r.chatID, 0, r.text)
+	result.ParseMode = tgbotapi.ModeHTML
 	result.ReplyMarkup = r.inlineKeyboardMarkup
 
 	return &result
