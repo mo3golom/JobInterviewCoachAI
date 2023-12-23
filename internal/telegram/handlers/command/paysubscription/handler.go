@@ -6,8 +6,8 @@ import (
 	"job-interviewer/internal/telegram/handlers/command"
 	"job-interviewer/pkg/language"
 	"job-interviewer/pkg/telegram"
+	"job-interviewer/pkg/telegram/keyboard"
 	"job-interviewer/pkg/telegram/model"
-	"job-interviewer/pkg/telegram/service/keyboard"
 )
 
 type Handler struct {

@@ -2,7 +2,7 @@ package survey
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"job-interviewer/pkg/telegram/service/keyboard"
+	keyboard2 "job-interviewer/pkg/telegram/keyboard"
 	"sort"
 	"strconv"
 	"unicode/utf8"
@@ -18,10 +18,10 @@ type (
 		value   T
 	}
 
-	DefaultQuestion[T comparable] struct {
+	DefaultQuestion[T comparable, D any] struct {
 		content         string
 		possibleAnswers []PossibleAnswer[T]
-		setAnswerFunc   func(answer T)
+		setAnswerFunc   func(answer T, out D)
 		answerIDValue   int
 		isAnsweredValue bool
 	}
@@ -48,38 +48,31 @@ func NewComplexPossibleAnswer[T comparable](content string, value ...T) Possible
 	return answer
 }
 
-func NewQuestion[T comparable](
+func NewQuestion[T comparable, D any](
 	question string,
-	setAnswerFunc func(answer T),
+	setAnswerFunc func(answer T, out D),
 	possibleAnswers ...PossibleAnswer[T],
-) Question {
-	answers := make([]PossibleAnswer[T], 0, 1+len(possibleAnswers))
-	if len(possibleAnswers) > 0 {
-		answers = append(answers, possibleAnswers...)
-	} else {
-		panic("question should have one or more answers!")
-	}
-
-	return DefaultQuestion[T]{
+) Question[D] {
+	return DefaultQuestion[T, D]{
 		content:         question,
-		possibleAnswers: answers,
+		possibleAnswers: possibleAnswers,
 		setAnswerFunc:   setAnswerFunc,
 	}
 }
 
-func (q DefaultQuestion[T]) toInlineKeyboard(command string, previousAnswers ...string) (*tgbotapi.InlineKeyboardMarkup, error) {
+func (q DefaultQuestion[T, D]) toInlineKeyboard(command string, previousAnswers ...string) (*tgbotapi.InlineKeyboardMarkup, error) {
 	keyboardListView := false
-	buttons := make([]keyboard.InlineButton, 0, len(q.possibleAnswers))
+	buttons := make([]keyboard2.InlineButton, 0, len(q.possibleAnswers))
 	for index, value := range q.possibleAnswers {
 		data := make([]string, 0, 1)
 		data = append(data, previousAnswers...)
 		data = append(data, strconv.Itoa(index))
 		buttons = append(
 			buttons,
-			keyboard.InlineButton{
+			keyboard2.InlineButton{
 				Value: value.content,
 				Data:  data,
-				Type:  keyboard.ButtonData,
+				Type:  keyboard2.ButtonData,
 			},
 		)
 
@@ -93,37 +86,37 @@ func (q DefaultQuestion[T]) toInlineKeyboard(command string, previousAnswers ...
 	})
 
 	if keyboardListView {
-		return keyboard.BuildInlineKeyboardList(
-			keyboard.BuildInlineKeyboardIn{
+		return keyboard2.BuildInlineKeyboardList(
+			keyboard2.BuildInlineKeyboardIn{
 				Command: &command,
 				Buttons: buttons,
 			},
 		)
 	}
-	return keyboard.BuildInlineKeyboardGrid(
-		keyboard.BuildInlineKeyboardIn{
+	return keyboard2.BuildInlineKeyboardGrid(
+		keyboard2.BuildInlineKeyboardIn{
 			Command: &command,
 			Buttons: buttons,
 		},
 	)
 }
 
-func (q DefaultQuestion[T]) text() string {
+func (q DefaultQuestion[T, D]) text() string {
 	return q.content
 }
 
-func (q DefaultQuestion[T]) isAnswered() bool {
+func (q DefaultQuestion[T, D]) isAnswered() bool {
 	return q.isAnsweredValue
 }
 
-func (q DefaultQuestion[T]) answerID() int {
+func (q DefaultQuestion[T, D]) answerID() int {
 	return q.answerIDValue
 }
 
-func (q DefaultQuestion[T]) setAnswer(answerID int) Question {
+func (q DefaultQuestion[T, D]) setAnswer(answerID int, out D) Question[D] {
 	q.isAnsweredValue = true
 	q.answerIDValue = answerID
-	q.setAnswerFunc(q.possibleAnswers[answerID].value)
+	q.setAnswerFunc(q.possibleAnswers[answerID].value, out)
 
 	return q
 }

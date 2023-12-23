@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"job-interviewer/internal"
 	"job-interviewer/internal/interviewer/model"
 	"job-interviewer/pkg/transactional"
 )
@@ -111,7 +112,7 @@ func convertInterview(in *sqlxInterview) *model.Interview {
 		UserID: in.UserID,
 		Status: model.InterviewStatus(in.Status),
 		JobInfo: model.JobInfo{
-			Position: model.Position(in.JobPosition),
+			Position: internal.Position(in.JobPosition),
 		},
 		QuestionsCount: in.QuestionCount,
 		State:          model.InterviewState(in.State),

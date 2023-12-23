@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"job-interviewer/internal"
 	"job-interviewer/internal/interviewer/contracts"
 	"job-interviewer/internal/interviewer/gpt"
 	"job-interviewer/internal/interviewer/model"
@@ -156,7 +157,7 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, interview *model.I
 
 	if len(history) == 0 {
 		startPrompt := fmt.Sprintf(startTechnicalInterviewPrompt, interview.JobInfo.Position)
-		if interview.JobInfo.Position == model.BehavioralPosition {
+		if interview.JobInfo.Position == internal.Behavioral {
 			startPrompt = startBehavioralInterviewPrompt
 		}
 

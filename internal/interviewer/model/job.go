@@ -1,13 +1,9 @@
 package model
 
-const (
-	BehavioralPosition Position = "behavioral"
-)
+import "job-interviewer/internal"
 
 type (
-	Position string
-
 	JobInfo struct {
-		Position Position
+		Position internal.Position
 	}
 )
