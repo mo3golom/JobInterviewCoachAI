@@ -87,6 +87,21 @@ func BuildKeyboardGrid(in BuildKeyboardIn) *tgbotapi.ReplyKeyboardMarkup {
 	}
 }
 
+func BuildKeyboardCustomGrid(in BuildKeyboardCustomIn) *tgbotapi.ReplyKeyboardMarkup {
+	keyboard := make([][]tgbotapi.KeyboardButton, 0, len(in.Buttons))
+	for _, row := range in.Buttons {
+		keyboard = append(
+			keyboard,
+			buildRow(row),
+		)
+	}
+
+	return &tgbotapi.ReplyKeyboardMarkup{
+		ResizeKeyboard: true,
+		Keyboard:       keyboard,
+	}
+}
+
 func buildRow(buttons []Button) []tgbotapi.KeyboardButton {
 	result := make([]tgbotapi.KeyboardButton, 0, len(buttons))
 	for _, button := range buttons {

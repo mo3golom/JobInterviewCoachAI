@@ -27,4 +27,8 @@ type (
 	BuildKeyboardIn struct {
 		Buttons []Button
 	}
+
+	BuildKeyboardCustomIn struct {
+		Buttons [][]Button
+	}
 )

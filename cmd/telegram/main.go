@@ -96,6 +96,7 @@ func main() {
 		telegramConfig.Handlers.PaySubscription,
 		telegramConfig.Handlers.CheckPayment,
 		telegramConfig.Handlers.About,
+		telegramConfig.Handlers.Subscription,
 	)
 
 	// REGISTER MESSAGE HANDLER

@@ -11,6 +11,7 @@ import (
 	"job-interviewer/internal/telegram/handlers/command/skipquestion"
 	"job-interviewer/internal/telegram/handlers/command/start"
 	"job-interviewer/internal/telegram/handlers/command/startinterview"
+	"job-interviewer/internal/telegram/handlers/command/subscription"
 	"job-interviewer/internal/telegram/handlers/errors"
 	"job-interviewer/internal/telegram/handlers/message/acceptanswer"
 	"job-interviewer/internal/telegram/middleware/user"
@@ -32,6 +33,7 @@ type (
 		PaySubscription     telegram.CommandHandler
 		CheckPayment        telegram.CommandHandler
 		About               telegram.CommandHandler
+		Subscription        telegram.CommandHandler
 
 		AcceptAnswer telegram.Handler
 
@@ -95,6 +97,7 @@ func NewConfiguration(
 		About: about.NewHandler(
 			variables,
 		),
+		Subscription: subscription.NewHandler(),
 	}
 
 	middlewares := &Middlewares{
