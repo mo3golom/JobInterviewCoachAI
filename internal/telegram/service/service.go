@@ -154,7 +154,23 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 
 	inlineKeyboard, err := keyboard.BuildInlineKeyboardGrid(
 		keyboard.BuildInlineKeyboardIn{
-			Buttons: getNextQuestionButtons,
+			Buttons: []keyboard.InlineButton{
+				{
+					Value: s.languageStorage.GetText(userLang, textKeyImDone),
+					Data:  []string{command.FinishInterviewCommand},
+					Type:  keyboard.ButtonData,
+				},
+				{
+					Value: s.languageStorage.GetText(userLang, textKeySuggestion),
+					Data:  []string{command.GetAnswerSuggestionCommand},
+					Type:  keyboard.ButtonData,
+				},
+				{
+					Value: s.languageStorage.GetText(userLang, textKeySkipQuestion),
+					Data:  []string{command.SkipQuestionCommand},
+					Type:  keyboard.ButtonData,
+				},
+			},
 		},
 	)
 	if err != nil {
@@ -170,14 +186,15 @@ func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Req
 }
 
 func (s *DefaultService) GetUserMainKeyboard(lang language.Language) *tgbotapi.ReplyKeyboardMarkup {
-	return keyboard.BuildKeyboardGrid(
-		keyboard.BuildKeyboardIn{
-			Buttons: []keyboard.Button{
+	return keyboard.BuildKeyboardCustomGrid(
+		keyboard.BuildKeyboardCustomIn{
+			Buttons: [][]keyboard.Button{
 				{
-					Value: s.languageStorage.GetText(lang, textKeyStartInterview),
+					{Value: s.languageStorage.GetText(lang, textKeyStartInterview)},
 				},
 				{
-					Value: s.languageStorage.GetText(lang, textKeyAbout),
+					{Value: s.languageStorage.GetText(lang, textKeySubscription)},
+					{Value: s.languageStorage.GetText(lang, textKeyAbout)},
 				},
 			},
 		},

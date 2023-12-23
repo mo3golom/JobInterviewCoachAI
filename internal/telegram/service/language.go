@@ -5,15 +5,19 @@ import (
 )
 
 const (
-	textKeyNotFoundActiveInterview language.TextKey = "textKeyNotFoundActiveInterview"
-	textKeyStartInterview          language.TextKey = "textKeyStartInterview"
-	textKeyFinishInterview         language.TextKey = "textKeyFinishInterview"
-	textKeyFreeQuestionsIsEnd      language.TextKey = "textKeyFreeQuestionsIsEnd"
-	textKeySubscriptionHasExpired  language.TextKey = "textKeySubscriptionHasExpired"
-	textKeySubscribe               language.TextKey = "textKeySubscribe"
-	textKeyBuySubscription         language.TextKey = "textKeyBuySubscription"
-	textKeyAbout                   language.TextKey = "textKeyAbout"
-	textKeyFinishNoActiveInterview language.TextKey = "textKeyFinishNoActiveInterview"
+	textKeyNotFoundActiveInterview = "textKeyNotFoundActiveInterview"
+	textKeyStartInterview          = "textKeyStartInterview"
+	textKeyFinishInterview         = "textKeyFinishInterview"
+	textKeyFreeQuestionsIsEnd      = "textKeyFreeQuestionsIsEnd"
+	textKeySubscriptionHasExpired  = "textKeySubscriptionHasExpired"
+	textKeySubscribe               = "textKeySubscribe"
+	textKeyBuySubscription         = "textKeyBuySubscription"
+	textKeyAbout                   = "textKeyAbout"
+	textKeyFinishNoActiveInterview = "textKeyFinishNoActiveInterview"
+	textKeySubscription            = "subscription"
+	textKeyImDone                  = "imDone"
+	textKeySuggestion              = "suggestion"
+	textKeySkipQuestion            = "skipQuestion"
 )
 
 func configLanguage() language.Storage {
@@ -29,9 +33,13 @@ func configLanguage() language.Storage {
 					textKeySubscribe: `Спасибо что проявили интерес к нашему боту! К сожалению ваша подписка истекла или число бесплатных попыток закончилось 😔 
 Месячная подписка стоит <b>%d</b> рублей в месяц. 
 После активации подписки вам будет доступно неограниченное тренировок с неограниченным числом вопросов! Если вы готовы, нажмите кнопку <b>"%s"</b> 😉`,
+					textKeySubscription:            "⭐ Подписка",
 					textKeyBuySubscription:         "💸 Купить подписку",
 					textKeyAbout:                   "🤖 О боте",
 					textKeyFinishNoActiveInterview: "чтобы закончить тренировку, у вас должна быть активная тренировка",
+					textKeyImDone:                  "🚜 Я все!",
+					textKeySuggestion:              "🙋 Подскажи",
+					textKeySkipQuestion:            "💭 Не хочу отвечать",
 				},
 			),
 		},
