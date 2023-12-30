@@ -92,7 +92,7 @@ func (s *DefaultService) FinishInterview(ctx context.Context, request *model.Req
 }
 
 func (s *DefaultService) GetNextQuestion(ctx context.Context, request *model.Request, sender telegram.Sender, updateMessageID ...int64) error {
-	userLang := request.User.Lang
+	userLang := language.Russian
 	var targetUpdateMessageID int64
 	if len(updateMessageID) > 0 {
 		targetUpdateMessageID = updateMessageID[0]
