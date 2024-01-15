@@ -1,0 +1,1 @@
+alter table user_telegram alter column telegram_id type bigint;
